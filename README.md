@@ -11,6 +11,25 @@ Building and deploying code is a problem that is notoriously difficult. Each lan
 
 ## Quick Start
 
+The `build.yaml` file is the heart of a Builder package
+
+    # build.yaml
+    namespace: my_company_name
+    name:      my_package_name
+    version:   1.0
+
+    type: go
+
+    dependencies:
+      compile:
+      - namspace: a_namespace
+        name:     a_name
+        version:  2.3
+      test:
+      - namespace: other_namespace
+        name:      other_name
+        version:   1.1
+
 The builder is a powerful tool with a lot of functionality. The following guides cover the most common use-cases.
 
 * Java Quick Start
