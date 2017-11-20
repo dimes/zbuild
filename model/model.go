@@ -51,6 +51,13 @@ type Dependencies struct {
 	Compile []Package `yaml:"compile"`
 }
 
+// Artifact represents a single build of a package. The build number must be unique across all
+// builds of the package
+type Artifact struct {
+	Package
+	BuildNumber string
+}
+
 // NewParsedBuildfile constructs an instance of ParsedBuildfile
 func NewParsedBuildfile(buildfile *Buildfile, absoluteWorkingDir string, rawBuildfile []byte) *ParsedBuildfile {
 	return &ParsedBuildfile{
