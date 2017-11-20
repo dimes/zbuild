@@ -1,4 +1,3 @@
-// Package artifacts contains logic for creating and manipulating artifacts.
 package artifacts
 
 import (
