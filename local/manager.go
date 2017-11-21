@@ -78,13 +78,20 @@ func (l *localManager) OpenReader(artifact *model.Artifact) (io.ReadCloser, erro
 			continue
 		}
 
+		if packageDir != "" {
+			return nil, fmt.Errorf("Found duplicate workspace packages for %+v. %s and %s", artifact,
+				packageDir, filepath.Join(l.workspace, dir.Name()))
+		}
+
 		packageDir = filepath.Join(l.workspace, dir.Name())
-		break
 	}
 
 	if packageDir == "" {
 		return nil, fmt.Errorf("Could not find local package matching artifact %+v", artifact)
 	}
+
+	// We only want to package up the build directory
+	packageDir = filepath.Join(packageDir, model.BuildDir)
 
 	reader, writer := io.Pipe()
 	go func() {
