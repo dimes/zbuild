@@ -8,10 +8,6 @@ import (
 	"flag"
 )
 
-const (
-	buildfileName = "build.yaml"
-)
-
 func main() {
 	var verbose bool
 	flag.BoolVar(&verbose, "v", false, "if set, verbose logging will be enabled")
@@ -24,7 +20,7 @@ func main() {
 
 	builder.RegisterBuilder(gobuilder.NewGoBuilder())
 
-	parsedBuildfile, err := model.ParseBuildfile(buildfileName)
+	parsedBuildfile, err := model.ParseBuildfile(model.BuildfileName)
 	if err != nil {
 		buildlog.Fatalf("Error parsing buildfile: %+v", err)
 	}

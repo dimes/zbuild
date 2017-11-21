@@ -12,7 +12,11 @@ import (
 )
 
 const (
-	buildDir = "build"
+	// BuildfileName is the one and only accepted name for buildfiles
+	BuildfileName = "build.yaml"
+
+	// BuildDir is the directory built artifacts are written to
+	BuildDir = "build"
 )
 
 // Buildfile is what a package's build file is parsed into
@@ -63,7 +67,7 @@ func NewParsedBuildfile(buildfile *Buildfile, absoluteWorkingDir string, rawBuil
 	return &ParsedBuildfile{
 		Buildfile:          *buildfile,
 		AbsoluteWorkingDir: absoluteWorkingDir,
-		AbsoluteBuildDir:   filepath.Join(absoluteWorkingDir, buildDir),
+		AbsoluteBuildDir:   filepath.Join(absoluteWorkingDir, BuildDir),
 		RawBuildfile:       rawBuildfile,
 	}
 }
