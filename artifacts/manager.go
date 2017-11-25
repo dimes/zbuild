@@ -11,10 +11,6 @@ type Manager interface {
 	OpenWriter(artifact *model.Artifact) (io.WriteCloser, error)
 }
 
-// S3Manager stores artifacts in S3
-type S3Manager struct {
-}
-
 // GCSManager stores artifacts in GCS
 type GCSManager struct {
 }

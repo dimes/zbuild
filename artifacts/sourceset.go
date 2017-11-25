@@ -1,6 +1,14 @@
 package artifacts
 
-import "builder/model"
+import (
+	"builder/model"
+	"errors"
+)
+
+var (
+	// ErrArtifactNotFound is returned when an artifact is not found
+	ErrArtifactNotFound = errors.New("artifact not found")
+)
 
 // SourceSet represents a set of packages. This set of packages are used to resolve package dependencies.
 // Implementations will typically rely on a notion of a "workspace" that contains packages as well as
@@ -12,9 +20,11 @@ type SourceSet interface {
 	GetAllArtifacts() ([]*model.Artifact, error)
 }
 
-// DynamoSourceSet uses DynamoDB to store package information
-type DynamoSourceSet struct {
-}
+// Source Set Table
+// source set -> namespace/package-name/version (+ build)
+
+// Package Table (essentially an append only log)
+// Package name -> version/build (+ build date)
 
 // DatastoreSourceSet uses Datastore to store package information
 type DatastoreSourceSet struct {
