@@ -42,6 +42,7 @@ func (s *S3Manager) OpenReader(artifact *model.Artifact) (io.ReadCloser, error) 
 
 	go func() {
 		s3manager.NewDownloaderWithClient(s.svc).Download(patchwork, input)
+		patchwork.Close()
 	}()
 
 	return ioutil.NopCloser(patchwork.Reader()), nil
@@ -58,6 +59,7 @@ func (s *S3Manager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, error)
 	}
 
 	go func() {
+		defer reader.Close()
 		if _, err := s3manager.NewUploaderWithClient(s.svc).Upload(uploadInput); err != nil {
 			reader.CloseWithError(err)
 			return
