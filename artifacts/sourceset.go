@@ -17,7 +17,6 @@ var (
 type SourceSet interface {
 	Name() string
 	GetArtifact(namespace, name, version string) (*model.Artifact, error)
-	GetLocationForArtifact(namespace, name, version string) (string, error)
 	GetAllArtifacts() ([]*model.Artifact, error)
 }
 
