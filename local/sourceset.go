@@ -2,8 +2,11 @@ package local
 
 import (
 	"builder/artifacts"
+	"builder/buildlog"
 	"builder/model"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 )
 
 type localSourceSet struct {
@@ -20,8 +23,49 @@ func NewLocalSourceSet(directory string) (artifacts.SourceSet, error) {
 		return nil, fmt.Errorf("Error getting workspace metadata for source set: %+v", err)
 	}
 
+	return newLocalSourceSet(workspaceMetadata.SourceSetName, workspaceMetadata.Artifacts)
+}
+
+// NewOverrideSourceSet returns a source set that uses only packages checked out in the workspace
+func NewOverrideSourceSet(directory string) (artifacts.SourceSet, error) {
+	workspace, err := GetWorkspace(directory)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting workspace directory for %s: %+v", directory, err)
+	}
+
+	files, err := ioutil.ReadDir(workspace)
+	if err != nil {
+		return nil, fmt.Errorf("Error listing workspace %s: %+v", workspace, err)
+	}
+
+	artifacts := make([]*model.Artifact, 0)
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+
+		buildfilePath := filepath.Join(workspace, file.Name(), model.BuildfileName)
+		parsedBuildfile, err := model.ParseBuildfile(buildfilePath)
+		if err != nil {
+			buildlog.Debugf("Ignoring possible override %s: %+v", buildfilePath, err)
+		}
+
+		artifacts = append(artifacts, &model.Artifact{
+			Package: parsedBuildfile.Package,
+		})
+	}
+
+	workspaceMetadata, err := GetWorkspaceMetadata(workspace)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting workspace metadata for %s: %+v", directory, err)
+	}
+
+	return newLocalSourceSet(workspaceMetadata.SourceSetName, artifacts)
+}
+
+func newLocalSourceSet(name string, artifacts []*model.Artifact) (artifacts.SourceSet, error) {
 	artifactIndex := make(map[string]map[string]map[string]*model.Artifact)
-	for _, artifact := range workspaceMetadata.Artifacts {
+	for _, artifact := range artifacts {
 		namespace, ok := artifactIndex[artifact.Namespace]
 		if !ok {
 			namespace = make(map[string]map[string]*model.Artifact)
@@ -38,8 +82,8 @@ func NewLocalSourceSet(directory string) (artifacts.SourceSet, error) {
 	}
 
 	return &localSourceSet{
-		name:          workspaceMetadata.SourceSetName,
-		artifacts:     workspaceMetadata.Artifacts,
+		name:          name,
+		artifacts:     artifacts,
 		artifactIndex: artifactIndex,
 	}, nil
 }
