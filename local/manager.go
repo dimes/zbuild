@@ -152,8 +152,7 @@ func (l *localManager) OpenReader(artifact *model.Artifact) (io.ReadCloser, erro
 
 // Opens a writer for the given artifact into the workspace package cache
 func (l *localManager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, error) {
-	artifactDirName := filepath.Join(l.workspace, workspaceDirName, workspacePackageCacheDirName,
-		artifact.Namespace, artifact.Name, artifact.Version, artifact.BuildNumber)
+	artifactDirName := localArtifactCacheDir(l.workspace, artifact)
 	if err := os.RemoveAll(artifactDirName); err != nil {
 		return nil, fmt.Errorf("Error removing existing artifact at %s: %+v", artifactDirName, err)
 	}
@@ -216,4 +215,9 @@ func (l *localManager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, err
 	}()
 
 	return writer, nil
+}
+
+func localArtifactCacheDir(workspace string, artifact *model.Artifact) string {
+	return filepath.Join(workspace, workspaceDirName, workspacePackageCacheDirName,
+		artifact.Namespace, artifact.Name, artifact.Version, artifact.BuildNumber)
 }

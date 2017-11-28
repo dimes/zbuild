@@ -10,20 +10,27 @@ import (
 )
 
 type localSourceSet struct {
-	name          string
-	artifacts     []*model.Artifact
-	artifactIndex map[string]map[string]map[string]*model.Artifact
+	workspace         string
+	name              string
+	artifacts         []*model.Artifact
+	artifactIndex     map[string]map[string]map[string]*model.Artifact
+	overrideLocations map[string]string
 }
 
 // NewLocalSourceSet returns a source set that uses the workspace directory as its backing data.
 // Any directory inside the workspace can be passed as this directory string
 func NewLocalSourceSet(directory string) (artifacts.SourceSet, error) {
-	workspaceMetadata, err := GetWorkspaceMetadata(directory)
+	workspace, err := GetWorkspace(directory)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting workspace directory for %s: %+v", directory, err)
+	}
+
+	workspaceMetadata, err := GetWorkspaceMetadata(workspace)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting workspace metadata for source set: %+v", err)
 	}
 
-	return newLocalSourceSet(workspaceMetadata.SourceSetName, workspaceMetadata.Artifacts)
+	return newLocalSourceSet(workspace, workspaceMetadata.SourceSetName, workspaceMetadata.Artifacts, nil)
 }
 
 // NewOverrideSourceSet returns a source set that uses only packages checked out in the workspace
@@ -39,12 +46,14 @@ func NewOverrideSourceSet(directory string) (artifacts.SourceSet, error) {
 	}
 
 	artifacts := make([]*model.Artifact, 0)
+	overrideLocations := make(map[string]string)
 	for _, file := range files {
 		if !file.IsDir() {
 			continue
 		}
 
-		buildfilePath := filepath.Join(workspace, file.Name(), model.BuildfileName)
+		packagePath := filepath.Join(workspace, file.Name())
+		buildfilePath := filepath.Join(packagePath, model.BuildfileName)
 		parsedBuildfile, err := model.ParseBuildfile(buildfilePath)
 		if err != nil {
 			buildlog.Debugf("Ignoring possible override %s: %+v", buildfilePath, err)
@@ -53,6 +62,7 @@ func NewOverrideSourceSet(directory string) (artifacts.SourceSet, error) {
 		artifacts = append(artifacts, &model.Artifact{
 			Package: parsedBuildfile.Package,
 		})
+		overrideLocations[packageToMapKey(parsedBuildfile.Package)] = packagePath
 	}
 
 	workspaceMetadata, err := GetWorkspaceMetadata(workspace)
@@ -60,10 +70,11 @@ func NewOverrideSourceSet(directory string) (artifacts.SourceSet, error) {
 		return nil, fmt.Errorf("Error getting workspace metadata for %s: %+v", directory, err)
 	}
 
-	return newLocalSourceSet(workspaceMetadata.SourceSetName, artifacts)
+	return newLocalSourceSet(workspace, workspaceMetadata.SourceSetName, artifacts, overrideLocations)
 }
 
-func newLocalSourceSet(name string, artifacts []*model.Artifact) (artifacts.SourceSet, error) {
+func newLocalSourceSet(workspace, name string, artifacts []*model.Artifact,
+	overrideLocations map[string]string) (artifacts.SourceSet, error) {
 	artifactIndex := make(map[string]map[string]map[string]*model.Artifact)
 	for _, artifact := range artifacts {
 		namespace, ok := artifactIndex[artifact.Namespace]
@@ -81,10 +92,16 @@ func newLocalSourceSet(name string, artifacts []*model.Artifact) (artifacts.Sour
 		version[artifact.Version] = artifact
 	}
 
+	if overrideLocations == nil {
+		overrideLocations = make(map[string]string)
+	}
+
 	return &localSourceSet{
-		name:          name,
-		artifacts:     artifacts,
-		artifactIndex: artifactIndex,
+		workspace:         workspace,
+		name:              name,
+		artifacts:         artifacts,
+		artifactIndex:     artifactIndex,
+		overrideLocations: overrideLocations,
 	}, nil
 }
 
@@ -93,22 +110,39 @@ func (l *localSourceSet) Name() string {
 }
 
 func (l *localSourceSet) GetArtifact(namespace, name, version string) (*model.Artifact, error) {
-	artifacts, ok := l.artifactIndex[namespace]
+	namespaceArtifacts, ok := l.artifactIndex[namespace]
 	if !ok {
-		return nil, fmt.Errorf("Namespace %s not found", namespace)
+		buildlog.Debugf("Namespace %s not found", namespace)
+		return nil, artifacts.ErrArtifactNotFound
+
 	}
 
-	versions, ok := artifacts[name]
+	versions, ok := namespaceArtifacts[name]
 	if !ok {
-		return nil, fmt.Errorf("Package %s/%s not found in workspace", namespace, name)
+		buildlog.Debugf("Package %s/%s not found in workspace", namespace, name)
+		return nil, artifacts.ErrArtifactNotFound
 	}
 
 	artifact, ok := versions[version]
 	if !ok {
-		return nil, fmt.Errorf("Version %s not found for %s/%s in workspace", version, namespace, name)
+		buildlog.Debugf("Version %s not found for %s/%s in workspace", version, namespace, name)
+		return nil, artifacts.ErrArtifactNotFound
 	}
 
 	return artifact, nil
+}
+
+func (l *localSourceSet) GetLocationForArtifact(namespace, name, version string) (string, error) {
+	artifact, err := l.GetArtifact(namespace, name, version)
+	if err != nil {
+		return "", err
+	}
+
+	if override := l.overrideLocations[packageInfoToMapKey(namespace, name, version)]; override != "" {
+		return override, nil
+	}
+
+	return localArtifactCacheDir(l.workspace, artifact), nil
 }
 
 func (l *localSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
