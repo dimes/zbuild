@@ -46,7 +46,7 @@ func (s *S3Manager) Setup() error {
 			return fmt.Errorf("Error creating bucket %s: %+v", s.bucketName, err)
 		}
 
-		buildlog.Warningf("Bucket %s already existed. Will use it.", s.bucketName)
+		buildlog.Warningf("Bucket %s already existed. It will be used as is", s.bucketName)
 	}
 
 	return nil
