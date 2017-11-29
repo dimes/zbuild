@@ -62,7 +62,7 @@ func GetBuildpath(path string, resolver DependencyResolver, upstream artifacts.M
 		return nil, fmt.Errorf("Error creating local source set: %+v", err)
 	}
 
-	overrideSourceSet, err := NewOverrideSourceSet(workspace)
+	overrideSourceSet, err := newOverrideSourceSet(workspace)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating override source set: %+v", err)
 	}
@@ -104,12 +104,7 @@ func GetBuildpath(path string, resolver DependencyResolver, upstream artifacts.M
 				return nil, fmt.Errorf("Error getting artifact for %s: %+v", artifact.String(), err)
 			}
 
-			artifactLocation, err = localSourceSet.GetLocationForArtifact(target.Namespace, target.Name,
-				target.Version)
-			if err != nil {
-				return nil, fmt.Errorf("Error getting location for artifact %s: %+v", artifact.String(), err)
-			}
-
+			artifactLocation = localArtifactCacheDir(workspace, artifact)
 			if _, err = os.Stat(artifactLocation); err != nil {
 				buildlog.Debugf("Downloading %s", artifact.String())
 				if err = artifacts.Transfer(upstream, localManager, artifact); err != nil {
@@ -119,7 +114,7 @@ func GetBuildpath(path string, resolver DependencyResolver, upstream artifacts.M
 		} else if err != nil {
 			return nil, fmt.Errorf("Error getting artifact from overide source set: %+v", err)
 		} else {
-			artifactLocation, err = overrideSourceSet.GetLocationForArtifact(target.Namespace, target.Name,
+			artifactLocation, err = overrideSourceSet.getLocationForArtifact(target.Namespace, target.Name,
 				target.Version)
 			if err != nil {
 				return nil, fmt.Errorf("Error getting artifact location for %s: %+v", artifact.String(), err)

@@ -139,14 +139,9 @@ func (l *localSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 }
 
 func (o *overrideSourceSet) getLocationForArtifact(namespace, name, version string) (string, error) {
-	artifact, err := o.GetArtifact(namespace, name, version)
-	if err != nil {
-		return "", err
-	}
-
 	if override := o.overrideLocations[packageInfoToMapKey(namespace, name, version)]; override != "" {
 		return override, nil
 	}
 
-	return "", fmt.Errorf("No location found")
+	return "", fmt.Errorf("No override location found for %s/%s/%s", namespace, name, version)
 }
