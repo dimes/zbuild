@@ -1,12 +1,14 @@
 package artifacts
 
 import (
+	"builder/buildlog"
 	"builder/model"
 	"fmt"
 	"io"
 	"io/ioutil"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/lox/patchwork"
@@ -24,6 +26,30 @@ func NewS3Manager(svc *s3.S3, bucketName string) (Manager, error) {
 		svc:        svc,
 		bucketName: bucketName,
 	}, nil
+}
+
+// Setup creates the bucket with the given name
+func (s *S3Manager) Setup() error {
+	createBucketInput := &s3.CreateBucketInput{
+		Bucket: aws.String(s.bucketName),
+	}
+
+	if s.svc.Config.Region != nil {
+		createBucketInput.CreateBucketConfiguration = &s3.CreateBucketConfiguration{
+			LocationConstraint: s.svc.Config.Region,
+		}
+	}
+
+	_, err := s.svc.CreateBucket(createBucketInput)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != s3.ErrCodeBucketAlreadyOwnedByYou {
+			return fmt.Errorf("Error creating bucket %s: %+v", s.bucketName, err)
+		}
+
+		buildlog.Warningf("Bucket %s already existed. Will use it.", s.bucketName)
+	}
+
+	return nil
 }
 
 // OpenReader opens a reader to an artifact stored in S3

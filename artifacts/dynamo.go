@@ -17,18 +17,23 @@ const (
 
 // DynamoSourceSet uses DynamoDB to store package information
 type DynamoSourceSet struct {
+	svc            *dynamodb.DynamoDB
 	sourceSetName  string
 	sourceSetTable string
 	artifactTable  string
-	svc            *dynamodb.DynamoDB
 }
 
 // NewDynamoSourceSet returns a source set backed by DyanmoDB
-func NewDynamoSourceSet(sourceSetName,
+func NewDynamoSourceSet(svc *dynamodb.DynamoDB,
+	sourceSetName,
 	sourceSetTable,
-	artifactTable,
-	svc *dynamodb.DynamoDB) (SourceSet, error) {
-	return nil, nil
+	artifactTable string) (SourceSet, error) {
+	return &DynamoSourceSet{
+		svc:            svc,
+		sourceSetName:  sourceSetName,
+		sourceSetTable: sourceSetTable,
+		artifactTable:  artifactTable,
+	}, nil
 }
 
 // Name returns the name of the source set
