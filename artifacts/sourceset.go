@@ -15,6 +15,7 @@ var (
 // metadata about the set. The set of packages in a source set are represented by "Artifacts". The
 // artfacts represent specific builds of the constituent packages.
 type SourceSet interface {
+	Setup() error
 	Name() string
 	GetArtifact(namespace, name, version string) (*model.Artifact, error)
 	GetAllArtifacts() ([]*model.Artifact, error)

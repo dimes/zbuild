@@ -1,10 +1,12 @@
 package artifacts
 
 import (
+	"builder/buildlog"
 	"builder/model"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
@@ -12,6 +14,7 @@ import (
 const (
 	sourceSetNameKey = "sourceSetName"
 	packageKey       = "package"
+	buildNumberKey   = "buildNumber"
 	artifactItemKey  = "artifact"
 )
 
@@ -34,6 +37,76 @@ func NewDynamoSourceSet(svc *dynamodb.DynamoDB,
 		sourceSetTable: sourceSetTable,
 		artifactTable:  artifactTable,
 	}, nil
+}
+
+// Setup sets up the required Dyanmo tables
+func (d *DynamoSourceSet) Setup() error {
+	if err := d.createTableIfNotExists(d.sourceSetTable, sourceSetNameKey, packageKey); err != nil {
+		return fmt.Errorf("Error creating table %s: %+v", d.sourceSetTable, err)
+	}
+
+	if err := d.createTableIfNotExists(d.artifactTable, packageKey, buildNumberKey); err != nil {
+		return fmt.Errorf("Error creating table %s: %+v", d.artifactTable, err)
+	}
+
+	return nil
+}
+
+func (d *DynamoSourceSet) createTableIfNotExists(table, hashKey, rangeKey string) error {
+	describeTableInput := &dynamodb.DescribeTableInput{
+		TableName: aws.String(table),
+	}
+	_, err := d.svc.DescribeTable(describeTableInput)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != dynamodb.ErrCodeResourceNotFoundException {
+			return fmt.Errorf("Error checking existence of table %s: %+v", table, err)
+		}
+
+		buildlog.Warningf("Table %s already existed. It will be used as is", table)
+		return nil
+	}
+
+	attributeDefinitions := []*dynamodb.AttributeDefinition{
+		{
+			AttributeName: aws.String(hashKey),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		},
+	}
+
+	keySchema := []*dynamodb.KeySchemaElement{
+		{
+			AttributeName: aws.String(hashKey),
+			KeyType:       aws.String(dynamodb.KeyTypeHash),
+		},
+	}
+
+	if rangeKey != "" {
+		attributeDefinitions = append(attributeDefinitions, &dynamodb.AttributeDefinition{
+			AttributeName: aws.String(rangeKey),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		})
+
+		keySchema = append(keySchema, &dynamodb.KeySchemaElement{
+			AttributeName: aws.String(rangeKey),
+			KeyType:       aws.String(dynamodb.KeyTypeRange),
+		})
+	}
+
+	createTableInput := &dynamodb.CreateTableInput{
+		AttributeDefinitions: attributeDefinitions,
+		KeySchema:            keySchema,
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(1),
+			WriteCapacityUnits: aws.Int64(1),
+		},
+		TableName: aws.String(table),
+	}
+
+	if _, err := d.svc.CreateTable(createTableInput); err != nil {
+		return fmt.Errorf("Error creating table %s: %+v", table, err)
+	}
+
+	return nil
 }
 
 // Name returns the name of the source set
