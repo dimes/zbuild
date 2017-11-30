@@ -3,6 +3,7 @@ package artifacts
 import (
 	"builder/buildlog"
 	"builder/model"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,10 +15,18 @@ import (
 	"github.com/lox/patchwork"
 )
 
+const (
+	// S3ManagerType is the type identifier for the S3 manager
+	S3ManagerType = "s3"
+)
+
 // S3Manager stores artifacts in S3
 type S3Manager struct {
 	svc        *s3.S3
 	bucketName string
+}
+
+type s3ManagerMetadata struct {
 }
 
 // NewS3Manager returns a manager backed by S3
@@ -26,6 +35,11 @@ func NewS3Manager(svc *s3.S3, bucketName string) (Manager, error) {
 		svc:        svc,
 		bucketName: bucketName,
 	}, nil
+}
+
+// Type returns the S3 manager type
+func (s *S3Manager) Type() string {
+	return S3ManagerType
 }
 
 // Setup creates the bucket with the given name
@@ -97,4 +111,11 @@ func (s *S3Manager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, error)
 
 func (s *S3Manager) artifactKey(artifact *model.Artifact) string {
 	return fmt.Sprintf("%s/%s/%s/%s", artifact.Namespace, artifact.Name, artifact.Version, artifact.BuildNumber)
+}
+
+// PersistMetadata persists metadata for this source set to a writer so it can be read later
+func (s *S3Manager) PersistMetadata(writer io.Writer) error {
+	// TODO: Populate this struct
+	metadata := &s3ManagerMetadata{}
+	return json.NewEncoder(writer).Encode(metadata)
 }

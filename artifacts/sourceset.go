@@ -3,6 +3,7 @@ package artifacts
 import (
 	"builder/model"
 	"errors"
+	"io"
 )
 
 var (
@@ -15,10 +16,12 @@ var (
 // metadata about the set. The set of packages in a source set are represented by "Artifacts". The
 // artfacts represent specific builds of the constituent packages.
 type SourceSet interface {
+	Type() string
 	Setup() error
 	Name() string
 	GetArtifact(namespace, name, version string) (*model.Artifact, error)
 	GetAllArtifacts() ([]*model.Artifact, error)
+	PersistMetadata(writer io.Writer) error
 }
 
 // Source Set Table

@@ -14,13 +14,19 @@ import (
 // WorkspaceMetadata represents local workspace metadata
 type WorkspaceMetadata struct {
 	SourceSetName string
+	SourceSetType string
+	ManagerType   string
 	Artifacts     []*model.Artifact
 }
 
 const (
-	rootSep          = string(os.PathSeparator)
-	workspaceDirName = ".workspace"
-	metadataFileName = "metadata.json"
+	rootSep           = string(os.PathSeparator)
+	workspaceDirName  = ".workspace"
+	metadataFileName  = "metadata.json"
+	managerFileName   = ".manager"
+	sourceSetFileName = ".sourceset"
+
+	openFlags = os.O_CREATE | os.O_TRUNC | os.O_WRONLY
 )
 
 var (
@@ -29,7 +35,7 @@ var (
 )
 
 // InitWorkspace creates a new workspace at the specified location
-func InitWorkspace(location string, sourceSet artifacts.SourceSet) error {
+func InitWorkspace(location string, sourceSet artifacts.SourceSet, manager artifacts.Manager) error {
 	workspaceDir := filepath.Join(location, workspaceDirName)
 	if info, _ := os.Stat(workspaceDir); info != nil {
 		return fmt.Errorf("Found existing workspace directory at %s", workspaceDir)
@@ -39,11 +45,47 @@ func InitWorkspace(location string, sourceSet artifacts.SourceSet) error {
 		return fmt.Errorf("Error creating workspace directory at %s: %+v", workspaceDir, err)
 	}
 
+	workspaceMetadata := &WorkspaceMetadata{
+		SourceSetType: sourceSet.Type(),
+		ManagerType:   sourceSet.Type(),
+	}
+
+	if err := writeMetadata(workspaceMetadata, workspaceDir); err != nil {
+		return fmt.Errorf("Error error writing initial metadata file: %+v", err)
+	}
+
+	sourceSetFileLocation := filepath.Join(workspaceDir, sourceSetFileName)
+	sourceSetFile, err := os.OpenFile(sourceSetFileLocation, openFlags, 0644)
+	if err != nil {
+		return fmt.Errorf("Error creating source set file in %s: %+v", sourceSetFileLocation, err)
+	}
+	defer sourceSetFile.Close()
+
+	if err := sourceSet.PersistMetadata(sourceSetFile); err != nil {
+		return fmt.Errorf("Error persisting source set: %+v", err)
+	}
+
+	managerFileLocation := filepath.Join(workspaceDir, managerFileName)
+	managerFile, err := os.OpenFile(managerFileLocation, openFlags, 0644)
+	if err != nil {
+		return fmt.Errorf("Error creating manager file in %s: %+v", managerFileLocation, err)
+	}
+	defer managerFile.Close()
+
+	if err := manager.PersistMetadata(managerFile); err != nil {
+		return fmt.Errorf("Error persisting manager: %+v", err)
+	}
+
 	return RefreshWorkspace(location, sourceSet)
 }
 
 // RefreshWorkspace refreshes the workspace metadata for the workspace located at location
 func RefreshWorkspace(location string, sourceSet artifacts.SourceSet) error {
+	oldWorkspaceMetadata, err := GetWorkspaceMetadata(location)
+	if err != nil {
+		return fmt.Errorf("Error getting existing workspace metadata for %s: %+v", location, err)
+	}
+
 	artifacts, err := sourceSet.GetAllArtifacts()
 	if err != nil {
 		return fmt.Errorf("Error retrieving artifacts from source set %s: %+v", sourceSet.Name(), err)
@@ -52,12 +94,16 @@ func RefreshWorkspace(location string, sourceSet artifacts.SourceSet) error {
 	workspaceMetadata := &WorkspaceMetadata{
 		SourceSetName: sourceSet.Name(),
 		Artifacts:     artifacts,
+		SourceSetType: oldWorkspaceMetadata.SourceSetType,
+		ManagerType:   oldWorkspaceMetadata.ManagerType,
 	}
 
 	workspaceDir := filepath.Join(location, workspaceDirName)
-	metadataFileLocation := filepath.Join(workspaceDir, metadataFileName)
-	openFlags := os.O_CREATE | os.O_TRUNC | os.O_WRONLY
+	return writeMetadata(workspaceMetadata, workspaceDir)
+}
 
+func writeMetadata(workspaceMetadata *WorkspaceMetadata, workspaceDir string) error {
+	metadataFileLocation := filepath.Join(workspaceDir, metadataFileName)
 	metadataFile, err := os.OpenFile(metadataFileLocation, openFlags, 0644)
 	if err != nil {
 		return fmt.Errorf("Error creating metadata file in %s: %+v", metadataFileLocation, err)

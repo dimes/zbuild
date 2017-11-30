@@ -3,7 +3,9 @@ package artifacts
 import (
 	"builder/buildlog"
 	"builder/model"
+	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -16,6 +18,9 @@ const (
 	packageKey       = "package"
 	buildNumberKey   = "buildNumber"
 	artifactItemKey  = "artifact"
+
+	// DynamoSourceSetType is the type identifier for Dynamo source sets
+	DynamoSourceSetType = "dynamo"
 )
 
 // DynamoSourceSet uses DynamoDB to store package information
@@ -24,6 +29,9 @@ type DynamoSourceSet struct {
 	sourceSetName  string
 	sourceSetTable string
 	artifactTable  string
+}
+
+type dynamoSourceSetMetadata struct {
 }
 
 // NewDynamoSourceSet returns a source set backed by DyanmoDB
@@ -37,6 +45,11 @@ func NewDynamoSourceSet(svc *dynamodb.DynamoDB,
 		sourceSetTable: sourceSetTable,
 		artifactTable:  artifactTable,
 	}, nil
+}
+
+// Type returns the type identifier for Dynamo source sets
+func (d *DynamoSourceSet) Type() string {
+	return DynamoSourceSetType
 }
 
 // Setup sets up the required Dyanmo tables
@@ -178,4 +191,11 @@ func (d *DynamoSourceSet) sourceSetPackageKey(namespace, name,
 		S: aws.String(packageValue),
 	}
 	return key
+}
+
+// PersistMetadata persists metadata for this source set to a writer so it can be read later
+func (d *DynamoSourceSet) PersistMetadata(writer io.Writer) error {
+	// TODO: Populate this struct
+	metadata := &dynamoSourceSetMetadata{}
+	return json.NewEncoder(writer).Encode(metadata)
 }
