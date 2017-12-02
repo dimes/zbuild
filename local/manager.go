@@ -43,6 +43,10 @@ func NewLocalManager(directory string) (artifacts.Manager, error) {
 	}, nil
 }
 
+func (l *localManager) Setup() error {
+	return nil
+}
+
 // OpenReader opens a reader to the given artifact. Because the artifact is local, the "build number"
 // is ignored
 func (l *localManager) OpenReader(artifact *model.Artifact) (io.ReadCloser, error) {
@@ -215,6 +219,10 @@ func (l *localManager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, err
 	}()
 
 	return writer, nil
+}
+
+func (l *localManager) PersistMetadata(writer io.Writer) error {
+	return nil
 }
 
 func localArtifactCacheDir(workspace string, artifact *model.Artifact) string {

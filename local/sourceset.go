@@ -5,6 +5,7 @@ import (
 	"builder/buildlog"
 	"builder/model"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -107,6 +108,14 @@ func newLocalSourceSet(workspace, name string, artifacts []*model.Artifact) *loc
 	}
 }
 
+func (l *localSourceSet) Type() string {
+	return "local"
+}
+
+func (l *localSourceSet) Setup() error {
+	return nil
+}
+
 func (l *localSourceSet) Name() string {
 	return l.name
 }
@@ -144,4 +153,8 @@ func (o *overrideSourceSet) getLocationForArtifact(namespace, name, version stri
 	}
 
 	return "", fmt.Errorf("No override location found for %s/%s/%s", namespace, name, version)
+}
+
+func (l *localSourceSet) PersistMetadata(writer io.Writer) error {
+	return nil
 }
