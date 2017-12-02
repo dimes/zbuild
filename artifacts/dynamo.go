@@ -23,27 +23,50 @@ const (
 	DynamoSourceSetType = "dynamo"
 )
 
-// DynamoSourceSet uses DynamoDB to store package information
-type DynamoSourceSet struct {
-	svc            *dynamodb.DynamoDB
-	sourceSetName  string
+// DynamoMetadata is the metadata for the DynamoDB client used by the source set.
+type DynamoMetadata struct {
+	region         string
 	sourceSetTable string
 	artifactTable  string
+	profile        string
 }
 
-type dynamoSourceSetMetadata struct {
+// DynamoSourceSet uses DynamoDB to store package information
+type DynamoSourceSet struct {
+	svc           *dynamodb.DynamoDB
+	sourceSetName string
+	metadata      *DynamoMetadata
 }
 
 // NewDynamoSourceSet returns a source set backed by DyanmoDB
 func NewDynamoSourceSet(svc *dynamodb.DynamoDB,
 	sourceSetName,
 	sourceSetTable,
-	artifactTable string) (SourceSet, error) {
-	return &DynamoSourceSet{
-		svc:            svc,
-		sourceSetName:  sourceSetName,
+	artifactTable,
+	profile string) (SourceSet, error) {
+	region := ""
+	if svc.Config.Region != nil {
+		region = *svc.Config.Region
+	}
+
+	metadata := &DynamoMetadata{
+		region:         region,
 		sourceSetTable: sourceSetTable,
 		artifactTable:  artifactTable,
+		profile:        profile,
+	}
+
+	return NewDynamoSourceSetFromMetadata(svc, sourceSetName, metadata)
+}
+
+// NewDynamoSourceSetFromMetadata returns a new dynamo-backed source set from metadata
+func NewDynamoSourceSetFromMetadata(svc *dynamodb.DynamoDB,
+	sourceSetName string,
+	metadata *DynamoMetadata) (SourceSet, error) {
+	return &DynamoSourceSet{
+		svc:           svc,
+		sourceSetName: sourceSetName,
+		metadata:      metadata,
 	}, nil
 }
 
@@ -54,12 +77,12 @@ func (d *DynamoSourceSet) Type() string {
 
 // Setup sets up the required Dyanmo tables
 func (d *DynamoSourceSet) Setup() error {
-	if err := d.createTableIfNotExists(d.sourceSetTable, sourceSetNameKey, packageKey); err != nil {
-		return fmt.Errorf("Error creating table %s: %+v", d.sourceSetTable, err)
+	if err := d.createTableIfNotExists(d.metadata.sourceSetTable, sourceSetNameKey, packageKey); err != nil {
+		return fmt.Errorf("Error creating table %s: %+v", d.metadata.sourceSetTable, err)
 	}
 
-	if err := d.createTableIfNotExists(d.artifactTable, packageKey, buildNumberKey); err != nil {
-		return fmt.Errorf("Error creating table %s: %+v", d.artifactTable, err)
+	if err := d.createTableIfNotExists(d.metadata.artifactTable, packageKey, buildNumberKey); err != nil {
+		return fmt.Errorf("Error creating table %s: %+v", d.metadata.artifactTable, err)
 	}
 
 	return nil
@@ -131,7 +154,7 @@ func (d *DynamoSourceSet) Name() string {
 // source set, then an error is returned.
 func (d *DynamoSourceSet) GetArtifact(namespace, name, version string) (*model.Artifact, error) {
 	artifactRequest := new(dynamodb.GetItemInput).
-		SetTableName(d.sourceSetTable).
+		SetTableName(d.metadata.sourceSetTable).
 		SetKey(d.sourceSetPackageKey(namespace, name, version)).
 		SetConsistentRead(true)
 	item, err := d.svc.GetItem(artifactRequest)
@@ -154,7 +177,7 @@ func (d *DynamoSourceSet) GetArtifact(namespace, name, version string) (*model.A
 // GetAllArtifacts returns all artifacts in this source set
 func (d *DynamoSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 	queryInput := new(dynamodb.QueryInput).
-		SetTableName(d.sourceSetTable).
+		SetTableName(d.metadata.sourceSetTable).
 		SetKeyConditionExpression(fmt.Sprintf("%s = :sourceSetName", sourceSetNameKey)).
 		SetExpressionAttributeValues(d.sourceSetKey(":sourceSetName"))
 	queryOutput, err := d.svc.Query(queryInput)
@@ -195,7 +218,5 @@ func (d *DynamoSourceSet) sourceSetPackageKey(namespace, name,
 
 // PersistMetadata persists metadata for this source set to a writer so it can be read later
 func (d *DynamoSourceSet) PersistMetadata(writer io.Writer) error {
-	// TODO: Populate this struct
-	metadata := &dynamoSourceSetMetadata{}
-	return json.NewEncoder(writer).Encode(metadata)
+	return json.NewEncoder(writer).Encode(d.metadata)
 }

@@ -20,20 +20,33 @@ const (
 	S3ManagerType = "s3"
 )
 
-// S3Manager stores artifacts in S3
-type S3Manager struct {
-	svc        *s3.S3
+// S3Metadata stores the metadata for the S3Manager
+type S3Metadata struct {
 	bucketName string
+	profile    string
 }
 
-type s3ManagerMetadata struct {
+// S3Manager stores artifacts in S3
+type S3Manager struct {
+	svc      *s3.S3
+	metadata *S3Metadata
 }
 
 // NewS3Manager returns a manager backed by S3
-func NewS3Manager(svc *s3.S3, bucketName string) (Manager, error) {
-	return &S3Manager{
-		svc:        svc,
+func NewS3Manager(svc *s3.S3, bucketName, profile string) (Manager, error) {
+	metadata := &S3Metadata{
 		bucketName: bucketName,
+		profile:    profile,
+	}
+
+	return NewS3ManagerFromMetadata(svc, metadata)
+}
+
+// NewS3ManagerFromMetadata returns an S3-backed manager from the given metadata
+func NewS3ManagerFromMetadata(svc *s3.S3, metadata *S3Metadata) (Manager, error) {
+	return &S3Manager{
+		svc:      svc,
+		metadata: metadata,
 	}, nil
 }
 
@@ -45,7 +58,7 @@ func (s *S3Manager) Type() string {
 // Setup creates the bucket with the given name
 func (s *S3Manager) Setup() error {
 	createBucketInput := &s3.CreateBucketInput{
-		Bucket: aws.String(s.bucketName),
+		Bucket: aws.String(s.metadata.bucketName),
 	}
 
 	if s.svc.Config.Region != nil {
@@ -57,10 +70,10 @@ func (s *S3Manager) Setup() error {
 	_, err := s.svc.CreateBucket(createBucketInput)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != s3.ErrCodeBucketAlreadyOwnedByYou {
-			return fmt.Errorf("Error creating bucket %s: %+v", s.bucketName, err)
+			return fmt.Errorf("Error creating bucket %s: %+v", s.metadata.bucketName, err)
 		}
 
-		buildlog.Warningf("Bucket %s already existed. It will be used as is", s.bucketName)
+		buildlog.Warningf("Bucket %s already existed. It will be used as is", s.metadata.bucketName)
 	}
 
 	return nil
@@ -76,7 +89,7 @@ func (s *S3Manager) OpenReader(artifact *model.Artifact) (io.ReadCloser, error) 
 
 	artifactKey := s.artifactKey(artifact)
 	input := &s3.GetObjectInput{
-		Bucket: aws.String(s.bucketName),
+		Bucket: aws.String(s.metadata.bucketName),
 		Key:    aws.String(artifactKey),
 	}
 
@@ -93,7 +106,7 @@ func (s *S3Manager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, error)
 	reader, writer := io.Pipe()
 	artifactKey := s.artifactKey(artifact)
 	uploadInput := &s3manager.UploadInput{
-		Bucket: aws.String(s.bucketName),
+		Bucket: aws.String(s.metadata.bucketName),
 		Key:    aws.String(artifactKey),
 		Body:   reader,
 	}
@@ -115,7 +128,5 @@ func (s *S3Manager) artifactKey(artifact *model.Artifact) string {
 
 // PersistMetadata persists metadata for this source set to a writer so it can be read later
 func (s *S3Manager) PersistMetadata(writer io.Writer) error {
-	// TODO: Populate this struct
-	metadata := &s3ManagerMetadata{}
-	return json.NewEncoder(writer).Encode(metadata)
+	return json.NewEncoder(writer).Encode(s.metadata)
 }
