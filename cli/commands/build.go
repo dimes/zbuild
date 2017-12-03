@@ -5,6 +5,7 @@ import (
 	"builder/buildlog"
 	"builder/gobuilder"
 	"builder/model"
+	"path/filepath"
 )
 
 type build struct{}
@@ -12,7 +13,7 @@ type build struct{}
 func (b *build) Exec(workingDir string, args ...string) error {
 	builder.RegisterBuilder(gobuilder.NewGoBuilder())
 
-	parsedBuildfile, err := model.ParseBuildfile(model.BuildfileName)
+	parsedBuildfile, err := model.ParseBuildfile(filepath.Join(workingDir, model.BuildfileName))
 	if err != nil {
 		buildlog.Fatalf("Error parsing buildfile: %+v", err)
 	}
