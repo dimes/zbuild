@@ -98,13 +98,13 @@ func (d *DynamoSourceSet) createTableIfNotExists(table, hashKey, rangeKey string
 		TableName: aws.String(table),
 	}
 	_, err := d.svc.DescribeTableWithContext(ctx, describeTableInput)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != dynamodb.ErrCodeResourceNotFoundException {
-			return fmt.Errorf("Error checking existence of table %s: %+v", table, err)
-		}
-
+	if err == nil {
 		buildlog.Warningf("Table %s already existed. It will be used as is", table)
 		return nil
+	}
+
+	if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != dynamodb.ErrCodeResourceNotFoundException {
+		return fmt.Errorf("Error checking existence of table %s: %+v", table, err)
 	}
 
 	attributeDefinitions := []*dynamodb.AttributeDefinition{
@@ -145,6 +145,15 @@ func (d *DynamoSourceSet) createTableIfNotExists(table, hashKey, rangeKey string
 
 	if _, err := d.svc.CreateTableWithContext(ctx, createTableInput); err != nil {
 		return fmt.Errorf("Error creating table %s: %+v", table, err)
+	}
+
+	createCtx, createCtxCancel := context.WithTimeout(context.Background(), time.Minute)
+	defer createCtxCancel()
+
+	for describeTableOutput, err := d.svc.DescribeTableWithContext(createCtx, describeTableInput); //
+	err != nil || *describeTableOutput.Table.TableStatus != dynamodb.TableStatusActive;            //
+	describeTableOutput, err = d.svc.DescribeTableWithContext(createCtx, describeTableInput) {
+		time.Sleep(5 * time.Second)
 	}
 
 	return nil

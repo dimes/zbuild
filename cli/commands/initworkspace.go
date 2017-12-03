@@ -51,12 +51,10 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 
 	fmt.Println("Should the about resources be created?")
 	if ok, err := getYnConfirmation(); ok {
-		fmt.Printf("here 1")
 		if err := manager.Setup(); err != nil {
 			buildlog.Fatalf("Error creating manager: %+v", err)
 		}
 
-		fmt.Printf("here 2")
 		if err := sourceSet.Setup(); err != nil {
 			buildlog.Fatalf("Error creating source set: %+v", err)
 		}
