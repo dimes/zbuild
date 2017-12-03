@@ -1,37 +1,35 @@
 package main
 
 import (
-	"builder"
 	"builder/buildlog"
-	"builder/gobuilder"
-	"builder/model"
-	"flag"
+	"builder/cli/argv"
+	"builder/cli/commands"
+	"os"
+)
+
+var (
+	knownCommands = map[string]commands.Command{
+		"init-workspace": commands.InitWorkspace,
+	}
 )
 
 func main() {
 	var verbose bool
-	flag.BoolVar(&verbose, "v", false, "if set, verbose logging will be enabled")
-	flag.Parse()
+	argSet := argv.NewArgSet()
+	argSet.ExpectBool(&verbose, "v", false, "if set, verbose logging will be enabled")
+	rest, _ := argSet.Parse(os.Args[1:])
 
-	buildlog.SetLogLevel(buildlog.Info)
-	if verbose {
-		buildlog.SetLogLevel(buildlog.Debug)
+	if len(rest) == 0 {
+		buildlog.Fatalf("No command specified")
 	}
 
-	builder.RegisterBuilder(gobuilder.NewGoBuilder())
-
-	parsedBuildfile, err := model.ParseBuildfile(model.BuildfileName)
-	if err != nil {
-		buildlog.Fatalf("Error parsing buildfile: %+v", err)
+	commandName := rest[0]
+	command, ok := knownCommands[commandName]
+	if !ok {
+		buildlog.Fatalf("Unknown command %s", commandName)
 	}
 
-	buildlog.Infof("Parsed buildfile for %s", parsedBuildfile.Package.String())
-	builder := builder.GetBuilderForType(parsedBuildfile.Type)
-	if builder == nil {
-		buildlog.Fatalf("Could not find builder for type %s", parsedBuildfile.Type)
-	}
-
-	if err = builder.Build(parsedBuildfile); err != nil {
-		buildlog.Fatalf("Error during build: %+v", err)
+	if err := command.Exec("abcd", rest[1:]...); err != nil {
+		buildlog.Fatalf("Error executing command %s: %+v", commandName, err)
 	}
 }

@@ -16,6 +16,14 @@ var (
 	buildNumberRegex = regexp.MustCompile(buildNumberRegexStr)
 )
 
+// IsValidName returns if a given name is valid
+func IsValidName(name string) error {
+	if !nameRegex.MatchString(name) {
+		return fmt.Errorf("Name %s does not match %s", name, nameRegexStr)
+	}
+	return nil
+}
+
 // IsValid returns true id the given artifact is valid. This only validates the data, e.g.
 // ensures the names conform to the naming standards, etc.
 func IsValid(artifact *model.Artifact) error {
