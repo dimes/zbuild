@@ -24,8 +24,8 @@ const (
 
 // S3Metadata stores the metadata for the S3Manager
 type S3Metadata struct {
-	bucketName string
-	profile    string
+	BucketName string `json:"bucketName"`
+	Profile    string `json:"profile"`
 }
 
 // S3Manager stores artifacts in S3
@@ -37,8 +37,8 @@ type S3Manager struct {
 // NewS3Manager returns a manager backed by S3
 func NewS3Manager(svc *s3.S3, bucketName, profile string) (Manager, error) {
 	metadata := &S3Metadata{
-		bucketName: bucketName,
-		profile:    profile,
+		BucketName: bucketName,
+		Profile:    profile,
 	}
 
 	return NewS3ManagerFromMetadata(svc, metadata)
@@ -60,7 +60,7 @@ func (s *S3Manager) Type() string {
 // Setup creates the bucket with the given name
 func (s *S3Manager) Setup() error {
 	createBucketInput := &s3.CreateBucketInput{
-		Bucket: aws.String(s.metadata.bucketName),
+		Bucket: aws.String(s.metadata.BucketName),
 	}
 
 	ctx, ctxCancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -69,10 +69,10 @@ func (s *S3Manager) Setup() error {
 	_, err := s.svc.CreateBucketWithContext(ctx, createBucketInput)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != s3.ErrCodeBucketAlreadyOwnedByYou {
-			return fmt.Errorf("Error creating bucket %s: %+v", s.metadata.bucketName, err)
+			return fmt.Errorf("Error creating bucket %s: %+v", s.metadata.BucketName, err)
 		}
 
-		buildlog.Warningf("Bucket %s already existed. It will be used as is", s.metadata.bucketName)
+		buildlog.Warningf("Bucket %s already existed. It will be used as is", s.metadata.BucketName)
 	}
 
 	return nil
@@ -88,7 +88,7 @@ func (s *S3Manager) OpenReader(artifact *model.Artifact) (io.ReadCloser, error) 
 
 	artifactKey := s.artifactKey(artifact)
 	input := &s3.GetObjectInput{
-		Bucket: aws.String(s.metadata.bucketName),
+		Bucket: aws.String(s.metadata.BucketName),
 		Key:    aws.String(artifactKey),
 	}
 
@@ -105,7 +105,7 @@ func (s *S3Manager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, error)
 	reader, writer := io.Pipe()
 	artifactKey := s.artifactKey(artifact)
 	uploadInput := &s3manager.UploadInput{
-		Bucket: aws.String(s.metadata.bucketName),
+		Bucket: aws.String(s.metadata.BucketName),
 		Key:    aws.String(artifactKey),
 		Body:   reader,
 	}
