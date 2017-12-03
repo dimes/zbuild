@@ -3,10 +3,12 @@ package artifacts
 import (
 	"builder/buildlog"
 	"builder/model"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -57,6 +59,7 @@ func (s *S3Manager) Type() string {
 
 // Setup creates the bucket with the given name
 func (s *S3Manager) Setup() error {
+	fmt.Printf("creating bucket input")
 	createBucketInput := &s3.CreateBucketInput{
 		Bucket: aws.String(s.metadata.bucketName),
 	}
@@ -67,7 +70,12 @@ func (s *S3Manager) Setup() error {
 		}
 	}
 
-	_, err := s.svc.CreateBucket(createBucketInput)
+	fmt.Printf("creating bucket")
+	ctx, ctxCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer ctxCancel()
+
+	_, err := s.svc.CreateBucketWithContext(ctx, createBucketInput)
+	fmt.Printf("checking error")
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != s3.ErrCodeBucketAlreadyOwnedByYou {
 			return fmt.Errorf("Error creating bucket %s: %+v", s.metadata.bucketName, err)
@@ -75,6 +83,8 @@ func (s *S3Manager) Setup() error {
 
 		buildlog.Warningf("Bucket %s already existed. It will be used as is", s.metadata.bucketName)
 	}
+
+	fmt.Printf("done\n")
 
 	return nil
 }

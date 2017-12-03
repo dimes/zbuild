@@ -50,16 +50,18 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 	manager, sourceSet, err := backendType.getManagerAndSourceSet(reader, sourceSetName)
 
 	fmt.Println("Should the about resources be created?")
-	if ok, err := getYnConfirmation(); !ok && err == nil {
+	if ok, err := getYnConfirmation(); ok {
+		fmt.Printf("here 1")
 		if err := manager.Setup(); err != nil {
 			buildlog.Fatalf("Error creating manager: %+v", err)
 		}
 
+		fmt.Printf("here 2")
 		if err := sourceSet.Setup(); err != nil {
 			buildlog.Fatalf("Error creating source set: %+v", err)
 		}
 	} else if err != nil {
-
+		return fmt.Errorf("Error getting confirmation for resource creation: %+v", err)
 	}
 
 	if err = local.InitWorkspace(workingDir, sourceSet, manager); err != nil {

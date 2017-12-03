@@ -3,9 +3,11 @@ package artifacts
 import (
 	"builder/buildlog"
 	"builder/model"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -89,10 +91,13 @@ func (d *DynamoSourceSet) Setup() error {
 }
 
 func (d *DynamoSourceSet) createTableIfNotExists(table, hashKey, rangeKey string) error {
+	ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer ctxCancel()
+
 	describeTableInput := &dynamodb.DescribeTableInput{
 		TableName: aws.String(table),
 	}
-	_, err := d.svc.DescribeTable(describeTableInput)
+	_, err := d.svc.DescribeTableWithContext(ctx, describeTableInput)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != dynamodb.ErrCodeResourceNotFoundException {
 			return fmt.Errorf("Error checking existence of table %s: %+v", table, err)
@@ -138,7 +143,7 @@ func (d *DynamoSourceSet) createTableIfNotExists(table, hashKey, rangeKey string
 		TableName: aws.String(table),
 	}
 
-	if _, err := d.svc.CreateTable(createTableInput); err != nil {
+	if _, err := d.svc.CreateTableWithContext(ctx, createTableInput); err != nil {
 		return fmt.Errorf("Error creating table %s: %+v", table, err)
 	}
 
