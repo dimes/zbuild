@@ -17,7 +17,15 @@ func main() {
 	var verbose bool
 	argSet := argv.NewArgSet()
 	argSet.ExpectBool(&verbose, "v", false, "if set, verbose logging will be enabled")
-	rest, _ := argSet.Parse(os.Args[1:])
+	rest, err := argSet.Parse(os.Args[1:])
+	if err != nil {
+		buildlog.Fatalf("Error parsing args: %+v", err)
+	}
+
+	buildlog.SetLogLevel(buildlog.Info)
+	if verbose {
+		buildlog.SetLogLevel(buildlog.Debug)
+	}
 
 	if len(rest) == 0 {
 		buildlog.Fatalf("No command specified")
@@ -29,7 +37,12 @@ func main() {
 		buildlog.Fatalf("Unknown command %s", commandName)
 	}
 
-	if err := command.Exec("abcd", rest[1:]...); err != nil {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		buildlog.Fatalf("Error getting working directory: %+v", err)
+	}
+
+	if err := command.Exec(workingDir, rest[1:]...); err != nil {
 		buildlog.Fatalf("Error executing command %s: %+v", commandName, err)
 	}
 }

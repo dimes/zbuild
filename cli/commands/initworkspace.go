@@ -49,7 +49,8 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 	fmt.Println("If the resources don't exist, then they can be created for you.")
 	manager, sourceSet, err := backendType.getManagerAndSourceSet(reader, sourceSetName)
 
-	if getYnConfirmation("Should the resources be created?") {
+	fmt.Println("Should the about resources be created?")
+	if ok, err := getYnConfirmation(); !ok && err == nil {
 		if err := manager.Setup(); err != nil {
 			buildlog.Fatalf("Error creating manager: %+v", err)
 		}
@@ -57,6 +58,8 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 		if err := sourceSet.Setup(); err != nil {
 			buildlog.Fatalf("Error creating source set: %+v", err)
 		}
+	} else if err != nil {
+
 	}
 
 	if err = local.InitWorkspace(workingDir, sourceSet, manager); err != nil {
@@ -111,14 +114,20 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 		artifacts.IsValidName)
 	dynamoRegion := readLineWithPrompt("Dynamo region: ", artifacts.IsValidName)
 	profile := readLineWithPrompt("(Optional) What profile should be used for AWS service calls: ",
-		artifacts.IsValidName)
-	if !getYnConfirmation(fmt.Sprintf(`Does this look right?
-		S3 Bucket: %s
-		Artifact Table: %s
-		Source Set Table: %s
-		Dynamo Region %s
-		AWS Profile %s
-		`, bucketName, artifactTableName, sourceSetTableName, dynamoRegion, profile)) {
+		func(input string) error {
+			if input == "" {
+				return nil
+			}
+			return artifacts.IsValidName(input)
+		})
+	fmt.Printf(`Does this look right?
+			S3 Bucket: %s
+			Artifact Table: %s
+			Source Set Table: %s
+			Dynamo Region: %s
+			AWS Profile: %s
+			`, bucketName, artifactTableName, sourceSetTableName, dynamoRegion, profile)
+	if ok, err := getYnConfirmation(); !ok || err != nil {
 		buildlog.Fatalf("Oops. Please try again")
 	}
 

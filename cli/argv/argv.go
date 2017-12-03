@@ -74,7 +74,7 @@ func (a *ArgSet) Parse(args []string) ([]string, error) {
 	}
 
 	a.parsed = true
-	return nil, nil
+	return rest, nil
 }
 
 // ExpectString expects a string argument with the given name.

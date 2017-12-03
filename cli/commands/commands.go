@@ -2,9 +2,6 @@ package commands
 
 import (
 	"builder/buildlog"
-	"errors"
-	"fmt"
-	"strings"
 
 	"github.com/manifoldco/promptui"
 )
@@ -36,15 +33,16 @@ func readLineWithPrompt(label string, validate promptui.ValidateFunc) string {
 	return result
 }
 
-func getYnConfirmation(label string) bool {
-	result := readLineWithPrompt(fmt.Sprintf("%s (y/n)", label), func(input string) error {
-		input = strings.ToLower(input)
-		if input == "y" || input == "n" {
-			return nil
-		}
-		return errors.New("Input must be 'y' or 'n'")
-	})
+func getYnConfirmation() (bool, error) {
+	prompt := promptui.Select{
+		Label: "Confirm?",
+		Items: []string{"Yes", "No"},
+	}
 
-	result = strings.ToLower(result)
-	return result == "y"
+	selectedIndex, _, err := prompt.Run()
+	if err != nil {
+		return false, err
+	}
+
+	return selectedIndex == 0, nil
 }
