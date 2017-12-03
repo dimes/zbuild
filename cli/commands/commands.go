@@ -16,13 +16,15 @@ var (
 
 // Command is an interface for commands
 type Command interface {
+	Describe() string
 	Exec(workingDir string, args ...string) error
 }
 
-func readLineWithPrompt(label string, validate promptui.ValidateFunc) string {
+func readLineWithPrompt(label string, validate promptui.ValidateFunc, defaultVal string) string {
 	prompt := promptui.Prompt{
 		Label:    label,
 		Validate: validate,
+		Default:  defaultVal,
 	}
 
 	result, err := prompt.Run()

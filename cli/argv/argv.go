@@ -25,10 +25,11 @@ type ArgSet struct {
 }
 
 type arg struct {
-	name    string
-	argType argType
-	ptr     interface{}
-	parsed  bool
+	name        string
+	argType     argType
+	ptr         interface{}
+	parsed      bool
+	description string
 }
 
 // NewArgSet returns an array of args
@@ -77,19 +78,26 @@ func (a *ArgSet) Parse(args []string) ([]string, error) {
 	return rest, nil
 }
 
+// PrintUsage prints the usage of this arg set to std in
+func (a *ArgSet) PrintUsage() {
+	for argName, arg := range a.registeredArgs {
+		fmt.Printf("\t-%s\t%s\n", argName, arg.description)
+	}
+}
+
 // ExpectString expects a string argument with the given name.
 func (a *ArgSet) ExpectString(ptr *string, name, defaultValue, description string) error {
 	*ptr = defaultValue
-	return a.expectArg(name, stringType, ptr)
+	return a.expectArg(name, stringType, ptr, description)
 }
 
 // ExpectBool expects a bool argument with the given name
 func (a *ArgSet) ExpectBool(ptr *bool, name string, defaultValue bool, description string) error {
 	*ptr = defaultValue
-	return a.expectArg(name, boolType, ptr)
+	return a.expectArg(name, boolType, ptr, description)
 }
 
-func (a *ArgSet) expectArg(name string, argType argType, ptr interface{}) error {
+func (a *ArgSet) expectArg(name string, argType argType, ptr interface{}, description string) error {
 	if a.parsed {
 		return errors.New("Parse has already been called on this instance")
 	}
@@ -99,9 +107,10 @@ func (a *ArgSet) expectArg(name string, argType argType, ptr interface{}) error 
 	}
 
 	a.registeredArgs[name] = &arg{
-		name:    name,
-		argType: argType,
-		ptr:     ptr,
+		name:        name,
+		argType:     argType,
+		ptr:         ptr,
+		description: description,
 	}
 
 	return nil

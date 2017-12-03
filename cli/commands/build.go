@@ -10,6 +10,10 @@ import (
 
 type build struct{}
 
+func (b *build) Describe() string {
+	return "Builds a package"
+}
+
 func (b *build) Exec(workingDir string, args ...string) error {
 	builder.RegisterBuilder(gobuilder.NewGoBuilder())
 

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -79,12 +80,17 @@ func (d *DynamoSourceSet) Type() string {
 
 // Setup sets up the required Dyanmo tables
 func (d *DynamoSourceSet) Setup() error {
-	if err := d.createTableIfNotExists(d.metadata.SourceSetTable, sourceSetNameKey, packageKey); err != nil {
-		return fmt.Errorf("Error creating table %s: %+v", d.metadata.SourceSetTable, err)
-	}
+	group, _ := errgroup.WithContext(context.Background())
+	group.Go(func() error {
+		return d.createTableIfNotExists(d.metadata.SourceSetTable, sourceSetNameKey, packageKey)
+	})
 
-	if err := d.createTableIfNotExists(d.metadata.ArtifactTable, packageKey, buildNumberKey); err != nil {
-		return fmt.Errorf("Error creating table %s: %+v", d.metadata.ArtifactTable, err)
+	group.Go(func() error {
+		return d.createTableIfNotExists(d.metadata.ArtifactTable, packageKey, buildNumberKey)
+	})
+
+	if err := group.Wait(); err != nil {
+		return fmt.Errorf("Error creating source set metadata tables: %+v", err)
 	}
 
 	return nil

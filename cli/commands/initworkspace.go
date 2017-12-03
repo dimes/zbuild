@@ -3,14 +3,15 @@ package commands
 import (
 	"bufio"
 	"builder/artifacts"
-	"builder/buildlog"
 	"builder/local"
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/manifoldco/promptui"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -29,6 +30,10 @@ type gcloudBackendType struct{}
 
 type initWorkspace struct{}
 
+func (i *initWorkspace) Describe() string {
+	return "Initializes a workspace"
+}
+
 func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 	if workspaceDir, err := local.GetWorkspace(workingDir); err == nil {
 		return fmt.Errorf("Workspace already exists at %s", workspaceDir)
@@ -39,7 +44,7 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to the builder system")
 	sourceSetName := readLineWithPrompt("What is the name of your source set? ",
-		artifacts.IsValidName)
+		artifacts.IsValidName, "")
 	backendType, err := getBackendTypeFromUser()
 	if err != nil {
 		return fmt.Errorf("Error getting backend type: %+v", err)
@@ -51,12 +56,11 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 
 	fmt.Println("Should the about resources be created?")
 	if ok, err := getYnConfirmation(); ok {
-		if err := manager.Setup(); err != nil {
-			buildlog.Fatalf("Error creating manager: %+v", err)
-		}
-
-		if err := sourceSet.Setup(); err != nil {
-			buildlog.Fatalf("Error creating source set: %+v", err)
+		group, _ := errgroup.WithContext(context.Background())
+		group.Go(manager.Setup)
+		group.Go(sourceSet.Setup)
+		if err := group.Wait(); err != nil {
+			return fmt.Errorf("Error creating manager and source set: %+v", err)
 		}
 	} else if err != nil {
 		return fmt.Errorf("Error getting confirmation for resource creation: %+v", err)
@@ -108,18 +112,19 @@ func getBackendTypeFromUser() (backendType, error) {
 
 func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 	sourceSetName string) (artifacts.Manager, artifacts.SourceSet, error) {
-	bucketName := readLineWithPrompt("S3 bucket for artifact storage: ", artifacts.IsValidName)
-	artifactTableName := readLineWithPrompt("Dynamo table name for artifact storage: ", artifacts.IsValidName)
+	bucketName := readLineWithPrompt("S3 bucket for artifact storage: ", artifacts.IsValidName, "")
+	artifactTableName := readLineWithPrompt("Dynamo table name for artifact storage: ", artifacts.IsValidName,
+		"builder-artifact-metadata")
 	sourceSetTableName := readLineWithPrompt("Dynamo table name for source set metadata: ",
-		artifacts.IsValidName)
-	dynamoRegion := readLineWithPrompt("Dynamo region: ", artifacts.IsValidName)
+		artifacts.IsValidName, "builder-source-set-metadata")
+	dynamoRegion := readLineWithPrompt("Dynamo region: ", artifacts.IsValidName, "us-east-1")
 	profile := readLineWithPrompt("(Optional) What profile should be used for AWS service calls: ",
 		func(input string) error {
 			if input == "" {
 				return nil
 			}
 			return artifacts.IsValidName(input)
-		})
+		}, "")
 	fmt.Printf(`Does this look right?
 			S3 Bucket: %s
 			Artifact Table: %s
@@ -128,7 +133,7 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 			AWS Profile: %s
 			`, bucketName, artifactTableName, sourceSetTableName, dynamoRegion, profile)
 	if ok, err := getYnConfirmation(); !ok || err != nil {
-		buildlog.Fatalf("Oops. Please try again")
+		return nil, nil, fmt.Errorf("User must re-enter information")
 	}
 
 	sess := NewSession(dynamoRegion, profile)
