@@ -136,7 +136,7 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 		return nil, nil, fmt.Errorf("User must re-enter information")
 	}
 
-	sess := NewSession(dynamoRegion, profile)
+	sess := local.NewSession(dynamoRegion, profile)
 	s3Svc := s3.New(sess)
 
 	manager, err := artifacts.NewS3Manager(s3Svc, bucketName, profile)

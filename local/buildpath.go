@@ -39,7 +39,7 @@ func (t *testResolver) GetDependencies(target model.Package) []model.Package {
 }
 
 // GetBuildpath returns a path to all packages required for the build
-func GetBuildpath(path string, resolver DependencyResolver, upstream artifacts.Manager) ([]string, error) {
+func GetBuildpath(path string, resolver DependencyResolver) ([]string, error) {
 	// Calculate the package containing the path
 	workspace, err := GetWorkspace(path)
 	if err != nil {
@@ -72,9 +72,14 @@ func GetBuildpath(path string, resolver DependencyResolver, upstream artifacts.M
 		return nil, fmt.Errorf("Error creating local manager: %+v", err)
 	}
 
+	upstreamManager, err := GetRemoteManager(workspace)
+	if err != nil {
+		buildlog.Fatalf("Error getting remote manager: %+v", err)
+	}
+
 	paths := make([]string, 0)
 	seenPackages := make(map[string]bool)
-	stack := []stackEntry{stackEntry{target: parsedBuildfile.Package}}
+	stack := []*stackEntry{{target: parsedBuildfile.Package}}
 	for len(stack) > 0 {
 		entry := stack[len(stack)-1]
 		target := entry.target
@@ -101,13 +106,13 @@ func GetBuildpath(path string, resolver DependencyResolver, upstream artifacts.M
 		if err == artifacts.ErrArtifactNotFound {
 			artifact, err = localSourceSet.GetArtifact(target.Namespace, target.Name, target.Version)
 			if err != nil {
-				return nil, fmt.Errorf("Error getting artifact for %s: %+v", artifact.String(), err)
+				return nil, fmt.Errorf("Error getting artifact for %s: %+v", target.String(), err)
 			}
 
 			artifactLocation = localArtifactCacheDir(workspace, artifact)
 			if _, err = os.Stat(artifactLocation); err != nil {
 				buildlog.Debugf("Downloading %s", artifact.String())
-				if err = artifacts.Transfer(upstream, localManager, artifact); err != nil {
+				if err = artifacts.Transfer(upstreamManager, localManager, artifact); err != nil {
 					return nil, fmt.Errorf("Error downloading artifact %s: %+v", artifact.String(), err)
 				}
 			}
@@ -124,7 +129,7 @@ func GetBuildpath(path string, resolver DependencyResolver, upstream artifacts.M
 		paths = append(paths, artifactLocation)
 		dependencies := resolver.GetDependencies(artifact.Package)
 		for _, dependency := range dependencies {
-			stack = append(stack, stackEntry{target: dependency})
+			stack = append(stack, &stackEntry{target: dependency})
 		}
 	}
 

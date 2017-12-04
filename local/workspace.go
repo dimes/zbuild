@@ -47,7 +47,7 @@ func InitWorkspace(location string, sourceSet artifacts.SourceSet, manager artif
 
 	workspaceMetadata := &WorkspaceMetadata{
 		SourceSetType: sourceSet.Type(),
-		ManagerType:   sourceSet.Type(),
+		ManagerType:   manager.Type(),
 	}
 
 	if err := writeMetadata(workspaceMetadata, workspaceDir); err != nil {

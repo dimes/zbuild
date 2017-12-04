@@ -62,6 +62,7 @@ func newOverrideSourceSet(directory string) (*overrideSourceSet, error) {
 		parsedBuildfile, err := model.ParseBuildfile(buildfilePath)
 		if err != nil {
 			buildlog.Debugf("Ignoring possible override %s: %+v", buildfilePath, err)
+			continue
 		}
 
 		artifacts = append(artifacts, &model.Artifact{

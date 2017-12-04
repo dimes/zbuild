@@ -6,14 +6,20 @@ import (
 	"builder/buildlog"
 	"builder/model"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 const (
+	// LocalManagerType is the type identifier for local managers.
+	LocalManagerType = "local"
+
 	workspacePackageCacheDirName = "package-cache"
 )
 
@@ -35,12 +41,16 @@ type localManager struct {
 func NewLocalManager(directory string) (artifacts.Manager, error) {
 	workspace, err := GetWorkspace(directory)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting workspacek for %s: %+v", workspace, err)
+		return nil, fmt.Errorf("Error getting workspace for %s: %+v", directory, err)
 	}
 
 	return &localManager{
 		workspace: workspace,
 	}, nil
+}
+
+func (l *localManager) Type() string {
+	return LocalManagerType
 }
 
 func (l *localManager) Setup() error {
@@ -228,4 +238,34 @@ func (l *localManager) PersistMetadata(writer io.Writer) error {
 func localArtifactCacheDir(workspace string, artifact *model.Artifact) string {
 	return filepath.Join(workspace, workspaceDirName, workspacePackageCacheDirName,
 		artifact.Namespace, artifact.Name, artifact.Version, artifact.BuildNumber)
+}
+
+// GetRemoteManager returns the manager configured for the workspace directory
+func GetRemoteManager(directory string) (artifacts.Manager, error) {
+	workspace, err := GetWorkspace(directory)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting workspace for %s: %+v", directory, err)
+	}
+
+	workspaceMetadata, err := GetWorkspaceMetadata(workspace)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting workspace metadata for %s: %+v", workspace, err)
+	}
+
+	managerMetadataFile, err := os.Open(filepath.Join(workspace, workspaceDirName, managerFileName))
+	if err != nil {
+		return nil, fmt.Errorf("Error opening manager metadata file: %+v", err)
+	}
+	defer managerMetadataFile.Close()
+
+	switch workspaceMetadata.ManagerType {
+	case artifacts.S3ManagerType:
+		metadata := &artifacts.S3Metadata{}
+		if err := json.NewDecoder(managerMetadataFile).Decode(metadata); err != nil {
+			return nil, fmt.Errorf("Error decoding manager metadata: %+v", err)
+		}
+		return artifacts.NewS3ManagerFromMetadata(s3.New(NewSession("", metadata.Profile)), metadata)
+	default:
+		return nil, fmt.Errorf("Unknown manager type found in metadata: %s", workspaceMetadata.ManagerType)
+	}
 }

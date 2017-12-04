@@ -1,4 +1,4 @@
-package commands
+package local
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
