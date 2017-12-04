@@ -4,7 +4,6 @@ import (
 	"builder/buildlog"
 	"builder/cli/argv"
 	"builder/cli/commands"
-	"fmt"
 	"os"
 )
 
@@ -53,11 +52,11 @@ func main() {
 }
 
 func printUsage(argSet *argv.ArgSet) {
-	fmt.Printf("Usage: %s [command] [options]\n", os.Args[0])
-	fmt.Println("Valid commands are:")
+	buildlog.Infof("Usage: %s [command] [options]", os.Args[0])
+	buildlog.Infof("Valid commands are:")
 	for commandName, command := range knownCommands {
-		fmt.Printf("\t%s\t%s\n", commandName, command.Describe())
+		buildlog.Infof("\t%s\t%s", commandName, command.Describe())
 	}
-	fmt.Println("\nValid options are:")
+	buildlog.Infof("Valid options are:")
 	argSet.PrintUsage()
 }

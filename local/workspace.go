@@ -76,7 +76,12 @@ func InitWorkspace(location string, sourceSet artifacts.SourceSet, manager artif
 		return fmt.Errorf("Error persisting manager: %+v", err)
 	}
 
-	return RefreshWorkspace(location, sourceSet)
+	if err := RefreshWorkspace(location, sourceSet); err != nil {
+		os.RemoveAll(workspaceDir)
+		return err
+	}
+
+	return nil
 }
 
 // RefreshWorkspace refreshes the workspace metadata for the workspace located at location

@@ -2,10 +2,12 @@
 // arguments of nested commands
 package argv
 
-import "errors"
-import "fmt"
-
-import "regexp"
+import (
+	"builder/buildlog"
+	"errors"
+	"fmt"
+	"regexp"
+)
 
 type argType string
 
@@ -81,7 +83,7 @@ func (a *ArgSet) Parse(args []string) ([]string, error) {
 // PrintUsage prints the usage of this arg set to std in
 func (a *ArgSet) PrintUsage() {
 	for argName, arg := range a.registeredArgs {
-		fmt.Printf("\t-%s\t%s\n", argName, arg.description)
+		buildlog.Infof("\t-%s\t%s\n", argName, arg.description)
 	}
 }
 

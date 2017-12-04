@@ -3,6 +3,7 @@ package commands
 import (
 	"bufio"
 	"builder/artifacts"
+	"builder/buildlog"
 	"builder/local"
 	"context"
 	"fmt"
@@ -42,20 +43,22 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Welcome to the builder system")
-	sourceSetName := readLineWithPrompt("What is the name of your source set? ",
+	buildlog.Infof("Welcome to the builder system")
+	sourceSetName := readLineWithPrompt("Source set name",
 		artifacts.IsValidName, "")
 	backendType, err := getBackendTypeFromUser()
 	if err != nil {
 		return fmt.Errorf("Error getting backend type: %+v", err)
 	}
 
-	fmt.Println("Please provide some info about the resources you'd like to use.")
-	fmt.Println("If the resources don't exist, then they can be created for you.")
+	buildlog.Infof("Please provide some info about the resources you'd like to use.")
+	buildlog.Infof("If the resources don't exist, then they can be created for you.")
 	manager, sourceSet, err := backendType.getManagerAndSourceSet(reader, sourceSetName)
+	if err != nil {
+		return err
+	}
 
-	fmt.Println("Should the about resources be created?")
-	if ok, err := getYnConfirmation(); ok {
+	if ok, err := getYnConfirmation("Create resources"); ok {
 		group, _ := errgroup.WithContext(context.Background())
 		group.Go(manager.Setup)
 		group.Go(sourceSet.Setup)
@@ -74,8 +77,6 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 }
 
 func getBackendTypeFromUser() (backendType, error) {
-	fmt.Println("Where would you like to store your packages?")
-
 	type backendOption struct {
 		name        string
 		backendType backendType
@@ -112,27 +113,29 @@ func getBackendTypeFromUser() (backendType, error) {
 
 func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 	sourceSetName string) (artifacts.Manager, artifacts.SourceSet, error) {
-	bucketName := readLineWithPrompt("S3 bucket for artifact storage: ", artifacts.IsValidName, "")
-	artifactTableName := readLineWithPrompt("Dynamo table name for artifact storage: ", artifacts.IsValidName,
+	bucketName := readLineWithPrompt("S3 bucket for artifact storage", artifacts.IsValidName, "")
+	artifactTableName := readLineWithPrompt("Dynamo table name for artifact storage", artifacts.IsValidName,
 		"builder-artifact-metadata")
-	sourceSetTableName := readLineWithPrompt("Dynamo table name for source set metadata: ",
+	sourceSetTableName := readLineWithPrompt("Dynamo table name for source set metadata",
 		artifacts.IsValidName, "builder-source-set-metadata")
-	dynamoRegion := readLineWithPrompt("Dynamo region: ", artifacts.IsValidName, "us-east-1")
-	profile := readLineWithPrompt("(Optional) What profile should be used for AWS service calls: ",
+	dynamoRegion := readLineWithPrompt("Dynamo region", artifacts.IsValidName, "us-east-1")
+	profile := readLineWithPrompt("(Optional) AWS credentials profile",
 		func(input string) error {
 			if input == "" {
 				return nil
 			}
 			return artifacts.IsValidName(input)
 		}, "")
-	fmt.Printf(`Does this look right?
+	buildlog.Infof(`
+
 			S3 Bucket: %s
 			Artifact Table: %s
 			Source Set Table: %s
 			Dynamo Region: %s
 			AWS Profile: %s
+			
 			`, bucketName, artifactTableName, sourceSetTableName, dynamoRegion, profile)
-	if ok, err := getYnConfirmation(); !ok || err != nil {
+	if ok, err := getYnConfirmation("Is this correct"); !ok || err != nil {
 		return nil, nil, fmt.Errorf("User must re-enter information")
 	}
 

@@ -35,9 +35,9 @@ func readLineWithPrompt(label string, validate promptui.ValidateFunc, defaultVal
 	return result
 }
 
-func getYnConfirmation() (bool, error) {
+func getYnConfirmation(label string) (bool, error) {
 	prompt := promptui.Select{
-		Label: "Confirm?",
+		Label: label,
 		Items: []string{"Yes", "No"},
 	}
 

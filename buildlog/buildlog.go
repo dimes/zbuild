@@ -10,23 +10,27 @@ import (
 type LogLevel interface {
 	Priority() int
 	Format() string
+	File() *os.File
 }
 
 var (
+	// Output has the highest priority and is inteded to be used for chaining commands
+	Output LogLevel = &logLevel{int(^uint(0) >> 1), "%s", os.Stdout}
+
 	// Debug logs at the debug level
-	Debug LogLevel = &logLevel{0, "[DEBUG] %s\n"}
+	Debug LogLevel = &logLevel{0, "[DEBUG] %s\n", os.Stderr}
 
 	// Info logs at the info level
-	Info LogLevel = &logLevel{1, "%s\n"}
+	Info LogLevel = &logLevel{1, "%s\n", os.Stderr}
 
 	// Warning logs at the warning level
-	Warning LogLevel = &logLevel{2, "[WARNING] %s\n"}
+	Warning LogLevel = &logLevel{2, "[WARNING] %s\n", os.Stderr}
 
 	// Error logs at the error level
-	Error LogLevel = &logLevel{3, "[ERROR] %s\n"}
+	Error LogLevel = &logLevel{3, "[ERROR] %s\n", os.Stderr}
 
 	// Fatal logs at the error level. It has the largest possible priority
-	Fatal LogLevel = &logLevel{int(^uint(0) >> 1), "[FATAL] %s\n"}
+	Fatal LogLevel = &logLevel{int(^uint(0) >> 1), "[FATAL] %s\n", os.Stderr}
 
 	currentLevel = Info
 )
@@ -34,6 +38,7 @@ var (
 type logLevel struct {
 	priority int
 	format   string
+	file     *os.File
 }
 
 func (l *logLevel) Priority() int {
@@ -44,9 +49,18 @@ func (l *logLevel) Format() string {
 	return l.format
 }
 
+func (l *logLevel) File() *os.File {
+	return l.file
+}
+
 // SetLogLevel sets the log level
 func SetLogLevel(level LogLevel) {
 	currentLevel = level
+}
+
+// Outputf prints the output directly
+func Outputf(format string, a ...interface{}) {
+	logAtLevel(Output, format, a...)
 }
 
 // Debugf logs at the debug level
@@ -81,5 +95,5 @@ func logAtLevel(level LogLevel, format string, a ...interface{}) {
 	}
 
 	formattedMessage := fmt.Sprintf(format, a...)
-	fmt.Fprintf(os.Stdout, level.Format(), formattedMessage)
+	fmt.Fprintf(level.File(), level.Format(), formattedMessage)
 }

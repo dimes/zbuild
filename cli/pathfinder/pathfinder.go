@@ -3,7 +3,6 @@ package main
 import (
 	"builder/buildlog"
 	"builder/local"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -19,5 +18,5 @@ func main() {
 		buildlog.Fatalf("Error getting build path for %s: %+v", workingDir, err)
 	}
 
-	fmt.Print(strings.Join(path, string(os.PathListSeparator)))
+	buildlog.Outputf(strings.Join(path, string(os.PathListSeparator)))
 }
