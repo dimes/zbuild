@@ -4,16 +4,19 @@ package gobuilder
 import (
 	"builder/buildlog"
 	"builder/copyutil"
+	"builder/local"
 	"builder/model"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 const (
 	goBuilderType = "go"
 	srcDir        = "src"
+	envFormat     = "%s=%s"
 )
 
 // GoBuilder contains most of the logic for building Go code
@@ -36,12 +39,16 @@ func (g *GoBuilder) Type() string {
 // and then copying the source files to the build directory.
 func (g *GoBuilder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 	buildlog.Infof("Building Go package %s", parsedBuildfile.Package.String())
+	env, err := generateEnvironment(parsedBuildfile)
+	if err != nil {
+		return fmt.Errorf("Error generating build environment: %+v", err)
+	}
 
 	cmd := exec.Command("go", "build", filepath.Join(".", "..."))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Dir = parsedBuildfile.AbsoluteWorkingDir
-	cmd.Env = generateEnvironment(parsedBuildfile)
+	cmd.Env = env
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Error building %s: %+v", parsedBuildfile.Package.String(), err)
 	}
@@ -58,9 +65,13 @@ func (g *GoBuilder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 	return nil
 }
 
-func generateEnvironment(parsedBuildfile *model.ParsedBuildfile) []string {
-	// TODO: Properly determine gopath
+func generateEnvironment(parsedBuildfile *model.ParsedBuildfile) ([]string, error) {
+	gopath, err := local.GetBuildpath(parsedBuildfile.AbsoluteWorkingDir, local.CompileDependencyResolver)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting GOPATH: %+v", err)
+	}
+
 	env := make([]string, 0)
-	env = append(env, "GOPATH="+parsedBuildfile.AbsoluteWorkingDir)
-	return env
+	env = append(env, fmt.Sprintf(envFormat, "GOPATH", strings.Join(gopath, string(os.PathListSeparator))))
+	return env, nil
 }
