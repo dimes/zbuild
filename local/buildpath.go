@@ -2,12 +2,13 @@ package local
 
 import (
 	"fmt"
-	"github.com/dimes/zbuild/artifacts"
-	"github.com/dimes/zbuild/buildlog"
-	"github.com/dimes/zbuild/model"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dimes/zbuild/artifacts"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/model"
 )
 
 var (

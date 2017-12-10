@@ -3,14 +3,15 @@ package gobuilder
 
 import (
 	"fmt"
-	"github.com/dimes/zbuild/buildlog"
-	"github.com/dimes/zbuild/copyutil"
-	"github.com/dimes/zbuild/local"
-	"github.com/dimes/zbuild/model"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/copyutil"
+	"github.com/dimes/zbuild/local"
+	"github.com/dimes/zbuild/model"
 )
 
 const (

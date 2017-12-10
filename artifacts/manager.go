@@ -1,8 +1,9 @@
 package artifacts
 
 import (
-	"github.com/dimes/zbuild/model"
 	"io"
+
+	"github.com/dimes/zbuild/model"
 )
 
 // Manager implementations can read/write artifacts to backing data store

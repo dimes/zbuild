@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/dimes/zbuild/artifacts"
 	"github.com/dimes/zbuild/buildlog"
 	"github.com/dimes/zbuild/model"
-	"os"
-	"path/filepath"
 )
 
 // WorkspaceMetadata represents local workspace metadata

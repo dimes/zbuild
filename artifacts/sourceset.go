@@ -2,8 +2,9 @@ package artifacts
 
 import (
 	"errors"
-	"github.com/dimes/zbuild/model"
 	"io"
+
+	"github.com/dimes/zbuild/model"
 )
 
 var (

@@ -1,10 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"github.com/dimes/zbuild/buildlog"
 	"github.com/dimes/zbuild/cli/argv"
 	"github.com/dimes/zbuild/cli/commands"
-	"os"
 )
 
 var (

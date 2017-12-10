@@ -3,10 +3,11 @@ package model
 
 import (
 	"fmt"
-	"github.com/dimes/zbuild/buildlog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/dimes/zbuild/buildlog"
 
 	yaml "gopkg.in/yaml.v2"
 )

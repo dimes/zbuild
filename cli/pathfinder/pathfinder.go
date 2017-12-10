@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/dimes/zbuild/buildlog"
-	"github.com/dimes/zbuild/local"
 	"os"
 	"strings"
+
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/local"
 )
 
 func main() {

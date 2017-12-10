@@ -5,8 +5,9 @@ package argv
 import (
 	"errors"
 	"fmt"
-	"github.com/dimes/zbuild/buildlog"
 	"regexp"
+
+	"github.com/dimes/zbuild/buildlog"
 )
 
 type argType string

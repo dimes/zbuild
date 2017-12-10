@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/dimes/zbuild/buildlog"
-	"github.com/dimes/zbuild/model"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/model"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"

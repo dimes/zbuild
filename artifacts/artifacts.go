@@ -3,8 +3,9 @@ package artifacts
 
 import (
 	"fmt"
-	"github.com/dimes/zbuild/model"
 	"io"
+
+	"github.com/dimes/zbuild/model"
 )
 
 // Transfer transfers an artifact from source to the destination. Note: This does not explicitly

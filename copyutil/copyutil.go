@@ -3,10 +3,11 @@ package copyutil
 
 import (
 	"fmt"
-	"github.com/dimes/zbuild/buildlog"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/dimes/zbuild/buildlog"
 )
 
 // Copy copies the source to the destination. If source is a directory, it will be copied

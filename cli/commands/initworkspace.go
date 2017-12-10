@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/dimes/zbuild/artifacts"
 	"github.com/dimes/zbuild/buildlog"
 	"github.com/dimes/zbuild/local"
-	"os"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"

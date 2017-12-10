@@ -2,8 +2,9 @@ package artifacts
 
 import (
 	"fmt"
-	"github.com/dimes/zbuild/model"
 	"regexp"
+
+	"github.com/dimes/zbuild/model"
 )
 
 const (

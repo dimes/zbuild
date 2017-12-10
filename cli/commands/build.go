@@ -1,11 +1,12 @@
 package commands
 
 import (
+	"path/filepath"
+
 	"github.com/dimes/zbuild"
 	"github.com/dimes/zbuild/buildlog"
 	"github.com/dimes/zbuild/gobuilder"
 	"github.com/dimes/zbuild/model"
-	"path/filepath"
 )
 
 type build struct{}
