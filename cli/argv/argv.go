@@ -3,9 +3,9 @@
 package argv
 
 import (
-	"builder/buildlog"
 	"errors"
 	"fmt"
+	"github.com/dimes/zbuild/buildlog"
 	"regexp"
 )
 

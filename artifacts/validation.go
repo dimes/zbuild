@@ -1,8 +1,8 @@
 package artifacts
 
 import (
-	"builder/model"
 	"fmt"
+	"github.com/dimes/zbuild/model"
 	"regexp"
 )
 

@@ -1,10 +1,10 @@
 // Package builder contains interfaces and definitions for builders
-package builder
+package zbuild
 
 import (
-	"builder/buildlog"
-	"builder/model"
 	"fmt"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/model"
 )
 
 var (

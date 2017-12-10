@@ -2,8 +2,8 @@
 package model
 
 import (
-	"builder/buildlog"
 	"fmt"
+	"github.com/dimes/zbuild/buildlog"
 	"io/ioutil"
 	"os"
 	"path/filepath"

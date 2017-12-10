@@ -2,8 +2,8 @@
 package copyutil
 
 import (
-	"builder/buildlog"
 	"fmt"
+	"github.com/dimes/zbuild/buildlog"
 	"io"
 	"os"
 	"path/filepath"

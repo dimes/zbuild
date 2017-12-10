@@ -1,11 +1,11 @@
 package artifacts
 
 import (
-	"builder/buildlog"
-	"builder/model"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/model"
 	"io"
 	"time"
 

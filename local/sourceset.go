@@ -1,10 +1,10 @@
 package local
 
 import (
-	"builder/artifacts"
-	"builder/buildlog"
-	"builder/model"
 	"fmt"
+	"github.com/dimes/zbuild/artifacts"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/model"
 	"io"
 	"io/ioutil"
 	"path/filepath"

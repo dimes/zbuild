@@ -1,7 +1,7 @@
 package artifacts
 
 import (
-	"builder/model"
+	"github.com/dimes/zbuild/model"
 	"io"
 )
 

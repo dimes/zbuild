@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"builder/buildlog"
+	"github.com/dimes/zbuild/buildlog"
 
 	"github.com/manifoldco/promptui"
 )

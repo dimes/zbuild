@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"builder"
-	"builder/buildlog"
-	"builder/gobuilder"
-	"builder/model"
+	"github.com/dimes/zbuild"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/gobuilder"
+	"github.com/dimes/zbuild/model"
 	"path/filepath"
 )
 
@@ -15,7 +15,7 @@ func (b *build) Describe() string {
 }
 
 func (b *build) Exec(workingDir string, args ...string) error {
-	builder.RegisterBuilder(gobuilder.NewGoBuilder())
+	zbuild.RegisterBuilder(gobuilder.NewGoBuilder())
 
 	parsedBuildfile, err := model.ParseBuildfile(filepath.Join(workingDir, model.BuildfileName))
 	if err != nil {
@@ -23,7 +23,7 @@ func (b *build) Exec(workingDir string, args ...string) error {
 	}
 
 	buildlog.Infof("Parsed buildfile for %s", parsedBuildfile.Package.String())
-	builder := builder.GetBuilderForType(parsedBuildfile.Type)
+	builder := zbuild.GetBuilderForType(parsedBuildfile.Type)
 	if builder == nil {
 		buildlog.Fatalf("Could not find builder for type %s", parsedBuildfile.Type)
 	}

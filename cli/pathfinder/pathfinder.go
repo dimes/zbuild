@@ -1,8 +1,8 @@
 package main
 
 import (
-	"builder/buildlog"
-	"builder/local"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/local"
 	"os"
 	"strings"
 )

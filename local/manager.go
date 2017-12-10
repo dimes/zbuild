@@ -2,12 +2,12 @@ package local
 
 import (
 	"archive/tar"
-	"builder/artifacts"
-	"builder/buildlog"
-	"builder/model"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/dimes/zbuild/artifacts"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/model"
 	"io"
 	"io/ioutil"
 	"os"

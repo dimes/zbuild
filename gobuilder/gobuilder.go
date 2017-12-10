@@ -2,11 +2,11 @@
 package gobuilder
 
 import (
-	"builder/buildlog"
-	"builder/copyutil"
-	"builder/local"
-	"builder/model"
 	"fmt"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/copyutil"
+	"github.com/dimes/zbuild/local"
+	"github.com/dimes/zbuild/model"
 	"os"
 	"os/exec"
 	"path/filepath"

@@ -2,11 +2,11 @@ package commands
 
 import (
 	"bufio"
-	"builder/artifacts"
-	"builder/buildlog"
-	"builder/local"
 	"context"
 	"fmt"
+	"github.com/dimes/zbuild/artifacts"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/local"
 	"os"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"

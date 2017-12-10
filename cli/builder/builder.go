@@ -1,9 +1,9 @@
 package main
 
 import (
-	"builder/buildlog"
-	"builder/cli/argv"
-	"builder/cli/commands"
+	"github.com/dimes/zbuild/buildlog"
+	"github.com/dimes/zbuild/cli/argv"
+	"github.com/dimes/zbuild/cli/commands"
 	"os"
 )
 
