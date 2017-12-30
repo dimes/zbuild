@@ -122,11 +122,11 @@ func (s *S3Manager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, error)
 	return writer, nil
 }
 
-func (s *S3Manager) artifactKey(artifact *model.Artifact) string {
-	return fmt.Sprintf("%s/%s/%s/%s", artifact.Namespace, artifact.Name, artifact.Version, artifact.BuildNumber)
-}
-
 // PersistMetadata persists metadata for this source set to a writer so it can be read later
 func (s *S3Manager) PersistMetadata(writer io.Writer) error {
 	return json.NewEncoder(writer).Encode(s.metadata)
+}
+
+func (s *S3Manager) artifactKey(artifact *model.Artifact) string {
+	return fmt.Sprintf("%s/%s/%s/%s", artifact.Namespace, artifact.Name, artifact.Version, artifact.BuildNumber)
 }

@@ -63,6 +63,14 @@ type Artifact struct {
 	BuildNumber string
 }
 
+// NewArtifact returns an artifact for the given package/build number
+func NewArtifact(pkg Package, buildNumber string) *Artifact {
+	return &Artifact{
+		Package:     pkg,
+		BuildNumber: buildNumber,
+	}
+}
+
 // NewParsedBuildfile constructs an instance of ParsedBuildfile
 func NewParsedBuildfile(buildfile *Buildfile, absoluteWorkingDir string, rawBuildfile []byte) *ParsedBuildfile {
 	return &ParsedBuildfile{

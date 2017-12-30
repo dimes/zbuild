@@ -22,6 +22,7 @@ type SourceSet interface {
 	Name() string
 	GetArtifact(namespace, name, version string) (*model.Artifact, error)
 	GetAllArtifacts() ([]*model.Artifact, error)
+	RegisterArtifact(*model.Artifact) error
 	PersistMetadata(writer io.Writer) error
 }
 

@@ -218,6 +218,20 @@ func (d *DynamoSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 	return artifacts, nil
 }
 
+// RegisterArtifact registers an artifact as available for consumptions by any source set
+func (d *DynamoSourceSet) RegisterArtifact(*model.Artifact) error {
+	putItemInput := &dynamodb.PutItemInput{
+		TableName: aws.String(d.metadata.ArtifactTable),
+	}
+
+	_, err := d.svc.PutItem()
+}
+
+// PersistMetadata persists metadata for this source set to a writer so it can be read later
+func (d *DynamoSourceSet) PersistMetadata(writer io.Writer) error {
+	return json.NewEncoder(writer).Encode(d.metadata)
+}
+
 // sourceSetKey creates a key into the source set artifact table (used to query entire source set)
 func (d *DynamoSourceSet) sourceSetKey(key string) map[string]*dynamodb.AttributeValue {
 	return map[string]*dynamodb.AttributeValue{
@@ -235,9 +249,4 @@ func (d *DynamoSourceSet) sourceSetPackageKey(namespace, name,
 		S: aws.String(packageValue),
 	}
 	return key
-}
-
-// PersistMetadata persists metadata for this source set to a writer so it can be read later
-func (d *DynamoSourceSet) PersistMetadata(writer io.Writer) error {
-	return json.NewEncoder(writer).Encode(d.metadata)
 }
