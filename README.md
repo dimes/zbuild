@@ -1,5 +1,7 @@
 # Builder
 
+[![Build Status](https://travis-ci.org/dimes/zbuild.svg?branch=master)](https://travis-ci.org/dimes/zbuild)
+
 Building and deploying code is a problem that is notoriously difficult. Each language has at least one solution to dependency management (sometimes many). These systems are typically incompatible with each other, making cross-language dependencies impossible. Even within a single language things can be difficult. It's easy to add public dependencies, but it requires a lot of work to setup private servers that hold private dependencies. After all of this, dependency managers do very little to help deploy the code.
 
 **Builder** aims to solve these problems in the following ways:
