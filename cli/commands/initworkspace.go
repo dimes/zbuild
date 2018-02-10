@@ -45,8 +45,7 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 
 	reader := bufio.NewReader(os.Stdin)
 	buildlog.Infof("Welcome to the builder system")
-	sourceSetName := readLineWithPrompt("Source set name",
-		artifacts.IsValidName, "")
+	sourceSetName := readLineWithPrompt("Source set name", artifacts.IsValidName, "")
 	backendType, err := getBackendTypeFromUser()
 	if err != nil {
 		return fmt.Errorf("Error getting backend type: %+v", err)
@@ -128,7 +127,7 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 			return artifacts.IsValidName(input)
 		}, "")
 	buildlog.Infof(`
-
+		
 			S3 Bucket: %s
 			Artifact Table: %s
 			Source Set Table: %s
