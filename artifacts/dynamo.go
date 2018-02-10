@@ -18,13 +18,13 @@ import (
 )
 
 const (
-	sourceSetNameKey = "sourceSetName"
-	packageKey       = "package"
-	buildNumberKey   = "buildNumber"
-	artifactItemKey  = "artifact"
-
 	// DynamoSourceSetType is the type identifier for Dynamo source sets
 	DynamoSourceSetType = "dynamo"
+
+	sourceSetKey   = "sourceSet"
+	packageKey     = "package"
+	artifactKey    = "artifact"
+	buildNumberKey = "buildNumber"
 )
 
 // DynamoMetadata is the metadata for the DynamoDB client used by the source set.
@@ -40,6 +40,57 @@ type DynamoSourceSet struct {
 	svc           *dynamodb.DynamoDB
 	sourceSetName string
 	metadata      *DynamoMetadata
+}
+
+func newPackageKey(namespace, name, version string) string {
+	return fmt.Sprintf("%s/%s/%s", namespace, name, version)
+}
+
+type sourceSetArtifactKey struct {
+	SourceSet string `dynamodbav:"sourceSet,omitempty"`
+	Package   string `dynamodbav:"package,omitempty"`
+}
+
+func newSourceSetArtifactKey(sourceSet, namespace, name, version string) sourceSetArtifactKey {
+	return sourceSetArtifactKey{
+		SourceSet: sourceSet,
+		Package:   newPackageKey(namespace, name, version),
+	}
+}
+
+type sourceSetArtifact struct {
+	sourceSetArtifactKey
+	Artifact    *model.Artifact `dynamodbav:"artifact,omitempty"`
+	BuildNumber string          `dynamodbav:"buildNumber,omitempty"`
+}
+
+type dynamoArtifactKey struct {
+	Package     string `dynamodbav:"package,omitempty"`
+	BuildNumber string `dynamodbav:"buildNumber,omitempty"`
+}
+
+func newDynamoArtifactKey(namespace, name, version, buildNumber string) dynamoArtifactKey {
+	return dynamoArtifactKey{
+		Package:     newPackageKey(namespace, name, version),
+		BuildNumber: buildNumber,
+	}
+}
+
+type dynamoArtifact struct {
+	dynamoArtifactKey
+	Artifact *model.Artifact `dynamodbav:"artifact,omitempty"`
+}
+
+func newDynamoArtifact(artifact *model.Artifact) *dynamoArtifact {
+	dynamoArtifactKey := newDynamoArtifactKey(
+		artifact.Namespace,
+		artifact.Name,
+		artifact.Version,
+		artifact.BuildNumber)
+	return &dynamoArtifact{
+		dynamoArtifactKey: dynamoArtifactKey,
+		Artifact:          artifact,
+	}
 }
 
 // NewDynamoSourceSet returns a source set backed by DyanmoDB
@@ -83,7 +134,7 @@ func (d *DynamoSourceSet) Type() string {
 func (d *DynamoSourceSet) Setup() error {
 	group, _ := errgroup.WithContext(context.Background())
 	group.Go(func() error {
-		return d.createTableIfNotExists(d.metadata.SourceSetTable, sourceSetNameKey, packageKey)
+		return d.createTableIfNotExists(d.metadata.SourceSetTable, sourceSetKey, packageKey)
 	})
 
 	group.Go(func() error {
@@ -174,21 +225,29 @@ func (d *DynamoSourceSet) Name() string {
 // GetArtifact returns an artifact stored in the database. If the artifact is not in the
 // source set, then an error is returned.
 func (d *DynamoSourceSet) GetArtifact(namespace, name, version string) (*model.Artifact, error) {
-	artifactRequest := new(dynamodb.GetItemInput).
-		SetTableName(d.metadata.SourceSetTable).
-		SetKey(d.sourceSetPackageKey(namespace, name, version)).
-		SetConsistentRead(true)
-	item, err := d.svc.GetItem(artifactRequest)
+	sourceSetArtifactKey := newSourceSetArtifactKey(d.sourceSetName, namespace, name, version)
+	key, err := dynamodbattribute.ConvertToMap(sourceSetArtifactKey)
+	if err != nil {
+		return nil, fmt.Errorf("Error serializing key: %+v", err)
+	}
+
+	getItemInput := &dynamodb.GetItemInput{
+		TableName:      aws.String(d.metadata.SourceSetTable),
+		Key:            key,
+		ConsistentRead: aws.Bool(true),
+	}
+
+	item, err := d.svc.GetItem(getItemInput)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting artifact %s: %+v", name, err)
 	}
 
-	if item == nil || item.Item == nil || item.Item[artifactItemKey] == nil {
+	if item == nil || item.Item == nil || item.Item[artifactKey] == nil {
 		return nil, ErrArtifactNotFound
 	}
 
 	artifact := &model.Artifact{}
-	if err = dynamodbattribute.ConvertFrom(item.Item[artifactItemKey], artifact); err != nil {
+	if err = dynamodbattribute.ConvertFrom(item.Item[artifactKey], artifact); err != nil {
 		return nil, fmt.Errorf("Error convrting dynamo item to artifact: %+v", err)
 	}
 
@@ -197,10 +256,18 @@ func (d *DynamoSourceSet) GetArtifact(namespace, name, version string) (*model.A
 
 // GetAllArtifacts returns all artifacts in this source set
 func (d *DynamoSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
-	queryInput := new(dynamodb.QueryInput).
-		SetTableName(d.metadata.SourceSetTable).
-		SetKeyConditionExpression(fmt.Sprintf("%s = :sourceSetName", sourceSetNameKey)).
-		SetExpressionAttributeValues(d.sourceSetKey(":sourceSetName"))
+	expressionValues := map[string]*dynamodb.AttributeValue{
+		":sourceSetName": {
+			S: aws.String(d.sourceSetName),
+		},
+	}
+
+	queryInput := &dynamodb.QueryInput{
+		TableName:                 aws.String(d.metadata.SourceSetTable),
+		KeyConditionExpression:    aws.String(fmt.Sprintf("%s = :sourceSetName", sourceSetKey)),
+		ExpressionAttributeValues: expressionValues,
+	}
+
 	queryOutput, err := d.svc.Query(queryInput)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting artifacts: %+v", err)
@@ -208,8 +275,12 @@ func (d *DynamoSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 
 	artifacts := make([]*model.Artifact, 0)
 	for _, item := range queryOutput.Items {
+		if item[artifactKey] == nil {
+			continue
+		}
+
 		artifact := &model.Artifact{}
-		if err = dynamodbattribute.ConvertFrom(item[artifactItemKey], artifact); err != nil {
+		if err = dynamodbattribute.ConvertFrom(item[artifactKey], artifact); err != nil {
 			return nil, fmt.Errorf("Error convrting dynamo item to artifact: %+v", err)
 		}
 		artifacts = append(artifacts, artifact)
@@ -219,34 +290,27 @@ func (d *DynamoSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 }
 
 // RegisterArtifact registers an artifact as available for consumptions by any source set
-func (d *DynamoSourceSet) RegisterArtifact(*model.Artifact) error {
-	putItemInput := &dynamodb.PutItemInput{
-		TableName: aws.String(d.metadata.ArtifactTable),
+func (d *DynamoSourceSet) RegisterArtifact(artifact *model.Artifact) error {
+	dynamoArtifact := newDynamoArtifact(artifact)
+	item, err := dynamodbattribute.ConvertToMap(dynamoArtifact)
+	if err != nil {
+		return fmt.Errorf("Error marshaling artifact %+v: %+v", artifact, err)
 	}
 
-	_, err := d.svc.PutItem()
+	putItemInput := &dynamodb.PutItemInput{
+		TableName:           aws.String(d.metadata.ArtifactTable),
+		Item:                item,
+		ConditionExpression: aws.String("attribute_not_exists(package)"),
+	}
+
+	if _, err := d.svc.PutItem(putItemInput); err != nil {
+		return fmt.Errorf("Error persisting artifact %+v: %+v", artifact, err)
+	}
+
+	return nil
 }
 
 // PersistMetadata persists metadata for this source set to a writer so it can be read later
 func (d *DynamoSourceSet) PersistMetadata(writer io.Writer) error {
 	return json.NewEncoder(writer).Encode(d.metadata)
-}
-
-// sourceSetKey creates a key into the source set artifact table (used to query entire source set)
-func (d *DynamoSourceSet) sourceSetKey(key string) map[string]*dynamodb.AttributeValue {
-	return map[string]*dynamodb.AttributeValue{
-		key: {
-			S: aws.String(d.Name()),
-		},
-	}
-}
-
-func (d *DynamoSourceSet) sourceSetPackageKey(namespace, name,
-	version string) map[string]*dynamodb.AttributeValue {
-	key := d.sourceSetKey(sourceSetNameKey)
-	packageValue := fmt.Sprintf("%s/%s/%s", namespace, name, version)
-	key[packageKey] = &dynamodb.AttributeValue{
-		S: aws.String(packageValue),
-	}
-	return key
 }
