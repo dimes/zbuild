@@ -40,4 +40,19 @@ func (r *register) Exec(workingDir string, args ...string) error {
 	if err := artifacts.Transfer(localManager, remoteManager, artifact); err != nil {
 		return fmt.Errorf("Error transfering %s: %+v", artifact.String(), err)
 	}
+
+	remoteSourceSet, err := local.GetRemoteSourceSet(workingDir)
+	if err != nil {
+		return fmt.Errorf("Error getting remote source set for %s: %+v", workingDir, err)
+	}
+
+	if err := remoteSourceSet.RegisterArtifact(artifact); err != nil {
+		return fmt.Errorf("Error registering artifact: %+v", err)
+	}
+
+	if err := remoteSourceSet.UseArtifact(artifact); err != nil {
+		return fmt.Errorf("Error using artifact in source set: %+v", err)
+	}
+
+	return nil
 }

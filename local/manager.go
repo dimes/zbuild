@@ -14,6 +14,7 @@ import (
 	"github.com/dimes/zbuild/buildlog"
 	"github.com/dimes/zbuild/model"
 
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -268,5 +269,38 @@ func GetRemoteManager(directory string) (artifacts.Manager, error) {
 		return artifacts.NewS3ManagerFromMetadata(s3.New(NewSession("", metadata.Profile)), metadata)
 	default:
 		return nil, fmt.Errorf("Unknown manager type found in metadata: %s", workspaceMetadata.ManagerType)
+	}
+}
+
+// GetRemoteSourceSet returns the source set configured for the workspace directory
+func GetRemoteSourceSet(directory string) (artifacts.SourceSet, error) {
+	workspace, err := GetWorkspace(directory)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting workspace for %s: %+v", directory, err)
+	}
+
+	workspaceMetadata, err := GetWorkspaceMetadata(workspace)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting workspace metadata for %s: %+v", workspace, err)
+	}
+
+	sourceSetMetadataFile, err := os.Open(filepath.Join(workspace, workspaceDirName, sourceSetFileName))
+	if err != nil {
+		return nil, fmt.Errorf("Error opening manager metadata file: %+v", err)
+	}
+	defer sourceSetMetadataFile.Close()
+
+	switch workspaceMetadata.SourceSetType {
+	case artifacts.DynamoSourceSetType:
+		metadata := &artifacts.DynamoMetadata{}
+		if err := json.NewDecoder(sourceSetMetadataFile).Decode(metadata); err != nil {
+			return nil, fmt.Errorf("Error decoding manager metadata: %+v", err)
+		}
+		session := NewSession(metadata.Region, metadata.Profile)
+		return artifacts.NewDynamoSourceSetFromMetadata(dynamodb.New(session),
+			workspaceMetadata.SourceSetName,
+			metadata)
+	default:
+		return nil, fmt.Errorf("Unknown source set type found in metadata: %s", workspaceMetadata.SourceSetType)
 	}
 }

@@ -1,6 +1,7 @@
 package local
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -147,6 +148,14 @@ func (l *localSourceSet) GetArtifact(namespace, name, version string) (*model.Ar
 
 func (l *localSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 	return l.artifacts, nil
+}
+
+func (l *localSourceSet) RegisterArtifact(*model.Artifact) error {
+	return errors.New("Registering of local artifacts not supported")
+}
+
+func (l *localSourceSet) UseArtifact(*model.Artifact) error {
+	return errors.New("Usage of local artifacts not supported")
 }
 
 func (o *overrideSourceSet) getLocationForArtifact(namespace, name, version string) (string, error) {

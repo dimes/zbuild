@@ -40,11 +40,11 @@ func main() {
 		buildlog.Fatalf("Could not find dependency resolver of type %s", resolver)
 	}
 
-	buildlog.Debugf("Getting build path for %s", file)
-	path, err := local.GetBuildpath(path, dependencyResolver)
+	buildlog.Debugf("Getting build path for %s", path)
+	buildpath, err := local.GetBuildpath(path, dependencyResolver)
 	if err != nil {
-		buildlog.Fatalf("Error getting build path for %s: %+v", file, err)
+		buildlog.Fatalf("Error getting build path for %s: %+v", path, err)
 	}
 
-	buildlog.Outputf(strings.Join(path, string(os.PathListSeparator)))
+	buildlog.Outputf(strings.Join(buildpath, string(os.PathListSeparator)))
 }
