@@ -60,8 +60,19 @@ func newSourceSetArtifactKey(sourceSet, namespace, name, version string) sourceS
 
 type sourceSetArtifact struct {
 	sourceSetArtifactKey
-	Artifact    *model.Artifact `dynamodbav:"artifact,omitempty"`
-	BuildNumber string          `dynamodbav:"buildNumber,omitempty"`
+	Artifact *model.Artifact `dynamodbav:"artifact,omitempty"`
+}
+
+func newSourceSetArtifact(sourceSet string, artifact *model.Artifact) *sourceSetArtifact {
+	sourceSetArtifactKey := newSourceSetArtifactKey(
+		sourceSet,
+		artifact.Namespace,
+		artifact.Name,
+		artifact.Version)
+	return &sourceSetArtifact{
+		sourceSetArtifactKey: sourceSetArtifactKey,
+		Artifact:             artifact,
+	}
 }
 
 type dynamoArtifactKey struct {
@@ -301,6 +312,28 @@ func (d *DynamoSourceSet) RegisterArtifact(artifact *model.Artifact) error {
 		TableName:           aws.String(d.metadata.ArtifactTable),
 		Item:                item,
 		ConditionExpression: aws.String("attribute_not_exists(package)"),
+	}
+
+	if _, err := d.svc.PutItem(putItemInput); err != nil {
+		return fmt.Errorf("Error persisting artifact %+v: %+v", artifact, err)
+	}
+
+	return nil
+}
+
+// UseArtifact marks the artifact as "in-use" by the source set. The artifact must have previously
+// been registered. This will overwrite any existing "used" artifact with the same namespace, name,
+// and version
+func (d *DynamoSourceSet) UseArtifact(artifact *model.Artifact) error {
+	sourceSetArtifact := newSourceSetArtifact(d.sourceSetName, artifact)
+	item, err := dynamodbattribute.ConvertToMap(sourceSetArtifact)
+	if err != nil {
+		return fmt.Errorf("Error marshaling artifact %+v: %+v", artifact, err)
+	}
+
+	putItemInput := &dynamodb.PutItemInput{
+		TableName: aws.String(d.metadata.SourceSetTable),
+		Item:      item,
 	}
 
 	if _, err := d.svc.PutItem(putItemInput); err != nil {
