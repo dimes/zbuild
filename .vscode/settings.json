@@ -4,6 +4,7 @@
         "gopath",
         "mkdir",
         "protobuf",
+        "vendoring",
         "workspace",
         "workspace's",
         "workspaces",
