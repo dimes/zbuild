@@ -44,7 +44,7 @@ func (i *initWorkspace) Exec(workingDir string, args ...string) error {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	buildlog.Infof("Welcome to the builder system")
+	buildlog.Infof("Welcome to the zbuild")
 	sourceSetName := readLineWithPrompt("Source set name", artifacts.IsValidName, "")
 	backendType, err := getBackendTypeFromUser()
 	if err != nil {
@@ -115,9 +115,9 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 	sourceSetName string) (artifacts.Manager, artifacts.SourceSet, error) {
 	bucketName := readLineWithPrompt("S3 bucket for artifact storage", artifacts.IsValidName, "")
 	artifactTableName := readLineWithPrompt("Dynamo table name for artifact storage", artifacts.IsValidName,
-		"builder-artifact-metadata")
+		"zbuild-artifact-metadata")
 	sourceSetTableName := readLineWithPrompt("Dynamo table name for source set metadata",
-		artifacts.IsValidName, "builder-source-set-metadata")
+		artifacts.IsValidName, "zbuild-source-set-metadata")
 	dynamoRegion := readLineWithPrompt("Dynamo region", artifacts.IsValidName, "us-east-1")
 	profile := readLineWithPrompt("(Optional) AWS credentials profile",
 		func(input string) error {
