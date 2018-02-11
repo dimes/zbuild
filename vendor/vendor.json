@@ -223,12 +223,6 @@
 			"revisionTime": "2016-11-07T20:46:39Z"
 		},
 		{
-			"checksumSHA1": "QBBj9JjHH5f6wWgJX9zL/L7ArFk=",
-			"path": "github.com/lox/patchwork",
-			"revision": "8dbb18efcb894e8f4dd2add32a1c04a4605f2181",
-			"revisionTime": "2016-05-31T19:21:22Z"
-		},
-		{
 			"checksumSHA1": "boiz5lfmrm21vVo/vsaeVqhwqE4=",
 			"path": "github.com/lunixbochs/vtclean",
 			"revision": "d14193dfc626125c831501c1c42340b4248e1f5a",
