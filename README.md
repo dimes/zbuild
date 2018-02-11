@@ -12,7 +12,7 @@ Handling dependencies in large, cross-team code bases is notoriously difficult. 
 
 ## Quick Start
 
-Before starting, please take a few minutes to familiarize yourself with the [core concepts](docs/concepts.md) of zbuild.
+Before starting, please take a few minutes to familiarize yourself with the [core concepts](https://dimes.github.io/zbuild/concepts) of zbuild.
 
 ### Installation
 
@@ -36,8 +36,8 @@ After installing the CLI, this command will get you started:
 
 Specific cloud providers may need additional setup. See the provider-specific documentation for more information
 
-* [AWS](docs/providers/aws.md)
-* [Google Cloud](docs/providers/gcloud.md)
+* [AWS](https://dimes.github.io/zbuild/providers/aws)
+* [Google Cloud](https://dimes.github.io/zbuild/providers/gcloud)
 
 ### Creating a package
 
@@ -62,8 +62,8 @@ The `build.yaml` file is the heart of a package.
 
 To understand the impact of the `type` parameter, see the language specific guides:
 
-* [Go](docs/langs/go.md)
-* [Java](docs/langs/java.md)
+* [Go](https://dimes.github.io/zbuild/langs/go)
+* [Java](https://dimes.github.io/zbuild/langs/java)
 
 ### Sharing your package
 
@@ -75,4 +75,4 @@ This command should be executed in the directory containing the package's `build
 
 ## Further reading
 
-See [the docs](docs/index.md) for more detailed information on the inner workings of zbuild.
+See [the docs](https://dimes.github.io/zbuild/) for more detailed information on the inner workings of zbuild.
