@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/dimes/zbuild.svg?branch=master)](https://travis-ci.org/dimes/zbuild)
 
-Handling dependencies in large, cross-team code bases is notoriously difficult. Each language has at least one dependency management solution (sometimes many!), and these different solutions rarely work well together. Additionally, most dependency managers rely on public repositories, and setting up private repos can be challeging or impossible.
+Handling dependencies in large, cross-team code bases is notoriously difficult. Each language has at least one dependency management solution (sometimes many!), and these different solutions rarely work well together. Additionally, most dependency managers rely on public repositories, and setting up private repositories can be challenging or impossible.
  
 **zbuild** aims to solve these problems in the following ways:
 
@@ -52,7 +52,7 @@ The `build.yaml` file is the heart of a package.
 
     dependencies:
       compile:
-      - namspace: a_namespace
+      - namespace: a_namespace
         name:     a_name
         version:  2.3
       test:

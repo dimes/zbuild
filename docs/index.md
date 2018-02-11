@@ -4,9 +4,9 @@ This page contains a detailed description of zbuild. If you're looking for somet
 
 Packages are the atomic unit of zbuild. They are identified by a namespace, name, and version. Valid identifiers are of the format `^[a-z0-9\.\-]{1,40}$`.
 
-### Buildfiles
+### Build Files
 
-Packages are identified by directories containing a `build.yaml` file. These buildfiles have the following format:
+Packages are identified by directories containing a `build.yaml` file. These build files have the following format:
 
     namespace: <string>
     name:      <string>
@@ -16,7 +16,7 @@ Packages are identified by directories containing a `build.yaml` file. These bui
 
     dependencies:
       compile:
-      - namspace: <string>
+      - namespace: <string>
         name:     <string>
         version:  <string>
       test:

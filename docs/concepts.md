@@ -8,7 +8,7 @@ The package is the atomic unit of zbuild. It represents something that can be "d
 
 ### Source Set
 
-A source set is a stable set of packages. They are similar to lock files in other langauages, but are shared across all packages inside the source set.
+A source set is a stable set of packages. They are similar to lock files in other languages, but are shared across all packages inside the source set.
 
 The easiest way to understand source sets may be a motivating example. Imagine you are on a team in a large company and have taken a dependency on another team's library. Your team will share a single source set that will contain a stable version of the library. This allows your team to work without having to worry about potentially breaking changes to the other team's library. The team that develops the library will use a separate source set. In the other team's source set, the library package will always track the absolute latest version because their day-to-day work involves using the latest changes.
 
