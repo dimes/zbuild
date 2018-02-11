@@ -12,13 +12,22 @@ import (
 	"github.com/dimes/zbuild/copyutil"
 	"github.com/dimes/zbuild/local"
 	"github.com/dimes/zbuild/model"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
 	goBuilderType = "go"
 	srcDir        = "src"
+	binDir        = "bin"
 	envFormat     = "%s=%s"
 )
+
+// GoBuildfile contains Go specific build options
+type GoBuildfile struct {
+	Go struct {
+		Targets []string `yaml:"targets,omitempty"`
+	} `yaml:"go,omitempty"`
+}
 
 // GoBuilder contains most of the logic for building Go code
 type GoBuilder struct {
@@ -45,6 +54,11 @@ func (g *GoBuilder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 		return fmt.Errorf("Error generating build environment: %+v", err)
 	}
 
+	goBuildfile := &GoBuildfile{}
+	if err = yaml.Unmarshal(parsedBuildfile.RawBuildfile, goBuildfile); err != nil {
+		return fmt.Errorf("Error parsing go buildfile: %+v", err)
+	}
+
 	cmd := exec.Command("go", "build", filepath.Join(".", "..."))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -52,6 +66,28 @@ func (g *GoBuilder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 	cmd.Env = env
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Error building %s: %+v", parsedBuildfile.Package.String(), err)
+	}
+
+	absoluteBinDir := filepath.Join(parsedBuildfile.AbsoluteBuildDir, binDir)
+	if len(goBuildfile.Go.Targets) > 0 {
+		os.Mkdir(absoluteBinDir, os.ModePerm)
+	}
+
+	for _, target := range goBuildfile.Go.Targets {
+		buildlog.Infof("Building target %s", target)
+		targetName := filepath.Base(filepath.Dir(target))
+		if targetName == "" || targetName == string(os.PathSeparator) {
+			return fmt.Errorf("Could not determine executable name for target %s", target)
+		}
+
+		cmd := exec.Command("go", "build", "-o", filepath.Join(absoluteBinDir, targetName), target)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Dir = parsedBuildfile.AbsoluteWorkingDir
+		cmd.Env = env
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Error building target %s: %+v", target, err)
+		}
 	}
 
 	buildlog.Infof("Copying source files to build directory %s", parsedBuildfile.AbsoluteBuildDir)

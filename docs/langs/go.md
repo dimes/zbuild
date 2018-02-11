@@ -12,6 +12,19 @@ zbuild assumes Go packages have this structure:
 
 The reason for this directory structure is that each zbuild package is its own mini go workspace. At compile time, the transitive closure of dependencies is calculated, and the `GOPATH` environment variable is set to a concatenated list of all the package locations.
 
+### Go Specific Build Options
+
+A build file with type `go` accepts Go specific options. They are:
+
+    # build.yaml
+    type: go
+    go:
+      # Targets are a list of files, relative to the package root, that should be built into
+      # binaries and placed in the `build/bin` folder.
+      targets:
+      - src/target1/main.go
+      - src/target2/file.go
+
 ### Vendoring
 
 zbuild does its own dependency resolution and conflict management based on the contents of build.yaml files. Therefore, it likely does not play well with conflicts in vendor dependencies (although this has not been tested!)
