@@ -118,7 +118,7 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 		"zbuild-artifact-metadata")
 	sourceSetTableName := readLineWithPrompt("Dynamo table name for source set metadata",
 		artifacts.IsValidName, "zbuild-source-set-metadata")
-	dynamoRegion := readLineWithPrompt("Dynamo region", artifacts.IsValidName, "us-east-1")
+	region := readLineWithPrompt("AWS Region", artifacts.IsValidName, "us-east-1")
 	profile := readLineWithPrompt("(Optional) AWS credentials profile",
 		func(input string) error {
 			if input == "" {
@@ -131,18 +131,18 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 			S3 Bucket: %s
 			Artifact Table: %s
 			Source Set Table: %s
-			Dynamo Region: %s
+			Region: %s
 			AWS Profile: %s
 			
-			`, bucketName, artifactTableName, sourceSetTableName, dynamoRegion, profile)
+			`, bucketName, artifactTableName, sourceSetTableName, region, profile)
 	if ok, err := getYnConfirmation("Is this correct"); !ok || err != nil {
 		return nil, nil, fmt.Errorf("User must re-enter information")
 	}
 
-	sess := local.NewSession(dynamoRegion, profile)
+	sess := local.NewSession(region, profile)
 	s3Svc := s3.New(sess)
 
-	manager, err := artifacts.NewS3Manager(s3Svc, bucketName, profile)
+	manager, err := artifacts.NewS3Manager(s3Svc, bucketName, region, profile)
 	if err != nil {
 		return nil, nil, err
 	}

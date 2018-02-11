@@ -10,7 +10,10 @@ import (
 
 var (
 	knownCommands = map[string]commands.Command{
+		"build":          commands.Build,
 		"init-workspace": commands.InitWorkspace,
+		"publish":        commands.Publish,
+		"refresh":        commands.Refresh,
 	}
 )
 

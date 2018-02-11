@@ -1,4 +1,4 @@
-// Package builder contains interfaces and definitions for builders
+// Package zbuild contains interfaces and definitions for builders
 package zbuild
 
 import (

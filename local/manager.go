@@ -266,7 +266,7 @@ func GetRemoteManager(directory string) (artifacts.Manager, error) {
 		if err := json.NewDecoder(managerMetadataFile).Decode(metadata); err != nil {
 			return nil, fmt.Errorf("Error decoding manager metadata: %+v", err)
 		}
-		return artifacts.NewS3ManagerFromMetadata(s3.New(NewSession("", metadata.Profile)), metadata)
+		return artifacts.NewS3ManagerFromMetadata(s3.New(NewSession(metadata.Region, metadata.Profile)), metadata)
 	default:
 		return nil, fmt.Errorf("Unknown manager type found in metadata: %s", workspaceMetadata.ManagerType)
 	}

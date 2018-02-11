@@ -11,13 +11,13 @@ import (
 	"github.com/dimes/zbuild/model"
 )
 
-type register struct{}
+type publish struct{}
 
-func (r *register) Describe() string {
-	return "Registers a package in a source set"
+func (p *publish) Describe() string {
+	return "Publishes a package in a source set"
 }
 
-func (r *register) Exec(workingDir string, args ...string) error {
+func (p *publish) Exec(workingDir string, args ...string) error {
 	parsedBuildfile, err := model.ParseBuildfile(filepath.Join(workingDir, model.BuildfileName))
 	if err != nil {
 		buildlog.Fatalf("Error parsing buildfile: %+v", err)

@@ -29,10 +29,10 @@ const (
 
 // DynamoMetadata is the metadata for the DynamoDB client used by the source set.
 type DynamoMetadata struct {
-	Region         string `json:"region"`
+	Region         string `json:"region,omitempty"`
 	SourceSetTable string `json:"sourceSetTable"`
 	ArtifactTable  string `json:"artifactTable"`
-	Profile        string `json:"profile"`
+	Profile        string `json:"profile,omitempty"`
 }
 
 // DynamoSourceSet uses DynamoDB to store package information
@@ -237,7 +237,7 @@ func (d *DynamoSourceSet) Name() string {
 // source set, then an error is returned.
 func (d *DynamoSourceSet) GetArtifact(namespace, name, version string) (*model.Artifact, error) {
 	sourceSetArtifactKey := newSourceSetArtifactKey(d.sourceSetName, namespace, name, version)
-	key, err := dynamodbattribute.ConvertToMap(sourceSetArtifactKey)
+	key, err := dynamodbattribute.MarshalMap(sourceSetArtifactKey)
 	if err != nil {
 		return nil, fmt.Errorf("Error serializing key: %+v", err)
 	}
@@ -258,7 +258,7 @@ func (d *DynamoSourceSet) GetArtifact(namespace, name, version string) (*model.A
 	}
 
 	artifact := &model.Artifact{}
-	if err = dynamodbattribute.ConvertFrom(item.Item[artifactKey], artifact); err != nil {
+	if err = dynamodbattribute.Unmarshal(item.Item[artifactKey], artifact); err != nil {
 		return nil, fmt.Errorf("Error convrting dynamo item to artifact: %+v", err)
 	}
 
@@ -291,7 +291,7 @@ func (d *DynamoSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 		}
 
 		artifact := &model.Artifact{}
-		if err = dynamodbattribute.ConvertFrom(item[artifactKey], artifact); err != nil {
+		if err = dynamodbattribute.Unmarshal(item[artifactKey], artifact); err != nil {
 			return nil, fmt.Errorf("Error convrting dynamo item to artifact: %+v", err)
 		}
 		artifacts = append(artifacts, artifact)
@@ -303,7 +303,7 @@ func (d *DynamoSourceSet) GetAllArtifacts() ([]*model.Artifact, error) {
 // RegisterArtifact registers an artifact as available for consumptions by any source set
 func (d *DynamoSourceSet) RegisterArtifact(artifact *model.Artifact) error {
 	dynamoArtifact := newDynamoArtifact(artifact)
-	item, err := dynamodbattribute.ConvertToMap(dynamoArtifact)
+	item, err := dynamodbattribute.MarshalMap(dynamoArtifact)
 	if err != nil {
 		return fmt.Errorf("Error marshaling artifact %+v: %+v", artifact, err)
 	}
@@ -326,7 +326,7 @@ func (d *DynamoSourceSet) RegisterArtifact(artifact *model.Artifact) error {
 // and version
 func (d *DynamoSourceSet) UseArtifact(artifact *model.Artifact) error {
 	sourceSetArtifact := newSourceSetArtifact(d.sourceSetName, artifact)
-	item, err := dynamodbattribute.ConvertToMap(sourceSetArtifact)
+	item, err := dynamodbattribute.MarshalMap(sourceSetArtifact)
 	if err != nil {
 		return fmt.Errorf("Error marshaling artifact %+v: %+v", artifact, err)
 	}

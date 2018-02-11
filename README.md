@@ -53,8 +53,8 @@ The `build.yaml` file is the heart of a package.
     dependencies:
       compile:
       - namespace: a_namespace
-        name:     a_name
-        version:  2.3
+        name:      a_name
+        version:   2.3
       test:
       - namespace: other_namespace
         name:      other_name

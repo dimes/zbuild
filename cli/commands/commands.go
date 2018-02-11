@@ -7,11 +7,17 @@ import (
 )
 
 var (
+	// Build is the command that executes a build
+	Build Command = &build{}
+
 	// InitWorkspace is the command that initializes a workspace on the local file system
 	InitWorkspace Command = &initWorkspace{}
 
-	// Build is the command that executes a build
-	Build Command = &build{}
+	// Publish is the command that uploads an artifact
+	Publish Command = &publish{}
+
+	// Refresh refreshes the workspace metadata
+	Refresh Command = &refresh{}
 )
 
 // Command is an interface for commands
