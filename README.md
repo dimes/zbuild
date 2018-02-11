@@ -1,19 +1,47 @@
-# Builder
+# zbuild
 
 [![Build Status](https://travis-ci.org/dimes/zbuild.svg?branch=master)](https://travis-ci.org/dimes/zbuild)
 
-Building and deploying code is a problem that is notoriously difficult. Each language has at least one solution to dependency management (sometimes many). These systems are typically incompatible with each other, making cross-language dependencies impossible. Even within a single language things can be difficult. It's easy to add public dependencies, but it requires a lot of work to setup private servers that hold private dependencies. After all of this, dependency managers do very little to help deploy the code.
+Handling dependencies in large, cross-team code bases is notoriously difficult. Each language has at least one dependency management solution (sometimes many!), and these different solutions rarely work well together. Additionally, most dependency managers rely on public repositories, and setting up private repos can be challeging or impossible.
+ 
+**zbuild** aims to solve these problems in the following ways:
 
-**Builder** aims to solve these problems in the following ways:
-
-* Providing easy dependency management that works across languages
-* Easy setup of internal dependencies
-* Easy deployment support
-* Integration with common language-specific dependency managers
+* Easy setup
+* Cross-language dependency support
+* Integration with other popular dependency managers
 
 ## Quick Start
 
-The `build.yaml` file is the heart of a Builder package
+Before starting, please take a few minutes to familiarize yourself with the [core concepts](docs/concepts.md) of zbuild.
+
+### Installation
+
+Building from source is the only supported installation mechanism and requires [Go 1.9+](https://golang.org/dl/)
+
+    > mkdir -p zbuild-workspace/src/github.com/dimes
+    > cd zbuild-workspace/src/github.com/dimes
+    > git clone git@github.com:dimes/zbuild.git
+    > cd zbuild
+    > GOPATH=$(cd ../../../.. && pwd); go install ./...
+
+After this, the binary will be located at `zbuild-workspace/bin/zbuild`
+
+### Creating a repository
+
+Built artifacts are stored in a package repository. These package repositories are stored on a remote service so they can be shared.
+
+After installing the CLI, this command will get you started:
+
+    zbuild init-workspace
+
+Specific cloud providers may need additional setup. See the provider-specific documentation for more information
+
+* [AWS](docs/providers/aws.md)
+* [Google Cloud](docs/providers/gcloud.md)
+
+### Creating a package
+
+The `build.yaml` file is the heart of a package.
 
     # build.yaml
     namespace: my_company_name
@@ -32,14 +60,19 @@ The `build.yaml` file is the heart of a Builder package
         name:      other_name
         version:   1.1
 
-The builder is a powerful tool with a lot of functionality. The following guides cover the most common use-cases.
+To understand the impact of the `type` parameter, see the language specific guides:
 
-* Java Quick Start
-* Go Quick Start
-* Private dependency management
-* Deployment
-* Cross-language dependencies
+* [Go](docs/langs/go.md)
+* [Java](docs/langs/java.md)
 
-## How it works
+### Sharing your package
 
-At first glance, it might seem ambitious to create a build system that works across languages, supports private dependencies, and provides easy deployment support. The "trick" that enables all of this is to recognize that all languages already have great support and tooling for building. The only missing piece is something that connects all the different build systems. **Builder** aims to be a unifying meta-builder, rather than a build system in and of itself. This removes a huge amount of complexity because the Builder doesn't need to know the specifics of building Java or Go. This also makes integration much easier, because it can be bolted on to existing Go projects or projects built with Gradle.
+Publishing a package updates your source set with the newest version of that package. The publish command is 
+
+    zbuild publish
+
+This command should be executed in the directory containing the package's `build.yaml` file or a subdirectory.
+
+## Further reading
+
+See [the docs](docs/index.md) for more detailed information on the inner workings of zbuild.

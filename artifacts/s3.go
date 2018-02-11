@@ -103,8 +103,16 @@ func (s *S3Manager) OpenReader(artifact *model.Artifact) (io.ReadCloser, error) 
 
 // OpenWriter opens a writer that can be used to write an artifact to S3
 func (s *S3Manager) OpenWriter(artifact *model.Artifact) (io.WriteCloser, error) {
-	reader, writer := io.Pipe()
 	artifactKey := s.artifactKey(artifact)
+	headObjectInput := &s3.HeadObjectInput{
+		Bucket: aws.String(s.metadata.BucketName),
+		Key:    aws.String(artifactKey),
+	}
+	if _, err := s.svc.HeadObject(headObjectInput); err == nil {
+		return nil, fmt.Errorf("The artifact %+v already exists", artifact)
+	}
+
+	reader, writer := io.Pipe()
 	uploadInput := &s3manager.UploadInput{
 		Bucket: aws.String(s.metadata.BucketName),
 		Key:    aws.String(artifactKey),
