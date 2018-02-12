@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	goBuilderType = "go"
-	srcDir        = "src"
-	binDir        = "bin"
-	envFormat     = "%s=%s"
+	goType    = "go"
+	srcDir    = "src"
+	binDir    = "bin"
+	envFormat = "%s=%s"
 )
 
 // Buildfile contains Go specific build options
@@ -39,15 +39,15 @@ func NewBuilder() *Builder {
 }
 
 // Type returns the type this builder should be registered under
-func (g *Builder) Type() string {
-	return goBuilderType
+func (b *Builder) Type() string {
+	return goType
 }
 
 // Build implements the Builder's Build method.
 //
 // Go builds consist of compiling all the code (to make sure it builds)
 // and then copying the source files to the build directory.
-func (g *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
+func (b *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 	buildlog.Infof("Building Go package %s", parsedBuildfile.Package.String())
 	env, err := generateEnvironment(parsedBuildfile)
 	if err != nil {

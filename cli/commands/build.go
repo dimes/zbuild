@@ -5,6 +5,7 @@ import (
 
 	"github.com/dimes/zbuild"
 	"github.com/dimes/zbuild/builders/golang"
+	"github.com/dimes/zbuild/builders/protobuf"
 	"github.com/dimes/zbuild/buildlog"
 	"github.com/dimes/zbuild/model"
 )
@@ -17,6 +18,7 @@ func (b *build) Describe() string {
 
 func (b *build) Exec(workingDir string, args ...string) error {
 	zbuild.RegisterBuilder(golang.NewBuilder())
+	zbuild.RegisterBuilder(protobuf.NewBuilder())
 
 	parsedBuildfile, err := model.ParseBuildfile(filepath.Join(workingDir, model.BuildfileName))
 	if err != nil {

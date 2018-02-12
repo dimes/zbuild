@@ -63,6 +63,7 @@ The `build.yaml` file is the heart of a package.
 To understand the impact of the `type` parameter, see the language specific guides:
 
 * [Go](https://dimes.github.io/zbuild/langs/go)
+* [Protocol Buffers](https://dimes.github.io/zbuild/langs/protobuf)
 * [Java](https://dimes.github.io/zbuild/langs/java)
 
 ### Sharing your package

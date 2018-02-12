@@ -12,7 +12,7 @@ Packages are identified by directories containing a `build.yaml` file. These bui
     name:      <string>
     version:   <string>
 
-    type: [go|java|protobuf]
+    type: [go|java|proto]
 
     dependencies:
       compile:
