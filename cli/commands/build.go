@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 
 	"github.com/dimes/zbuild"
+	"github.com/dimes/zbuild/builders/golang"
 	"github.com/dimes/zbuild/buildlog"
-	"github.com/dimes/zbuild/gobuilder"
 	"github.com/dimes/zbuild/model"
 )
 
@@ -16,7 +16,7 @@ func (b *build) Describe() string {
 }
 
 func (b *build) Exec(workingDir string, args ...string) error {
-	zbuild.RegisterBuilder(gobuilder.NewGoBuilder())
+	zbuild.RegisterBuilder(golang.NewBuilder())
 
 	parsedBuildfile, err := model.ParseBuildfile(filepath.Join(workingDir, model.BuildfileName))
 	if err != nil {

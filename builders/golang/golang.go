@@ -1,5 +1,5 @@
-// Package gobuilder contains all logic related to building go code
-package gobuilder
+// Package golang contains all logic related to building go code
+package golang
 
 import (
 	"fmt"
@@ -22,24 +22,24 @@ const (
 	envFormat     = "%s=%s"
 )
 
-// GoBuildfile contains Go specific build options
-type GoBuildfile struct {
+// Buildfile contains Go specific build options
+type Buildfile struct {
 	Go struct {
 		Targets []string `yaml:"targets,omitempty"`
 	} `yaml:"go,omitempty"`
 }
 
-// GoBuilder contains most of the logic for building Go code
-type GoBuilder struct {
+// Builder contains most of the logic for building Go code
+type Builder struct {
 }
 
-// NewGoBuilder returns a new instance of the go builder
-func NewGoBuilder() *GoBuilder {
-	return &GoBuilder{}
+// NewBuilder returns a new instance of the go builder
+func NewBuilder() *Builder {
+	return &Builder{}
 }
 
 // Type returns the type this builder should be registered under
-func (g *GoBuilder) Type() string {
+func (g *Builder) Type() string {
 	return goBuilderType
 }
 
@@ -47,14 +47,14 @@ func (g *GoBuilder) Type() string {
 //
 // Go builds consist of compiling all the code (to make sure it builds)
 // and then copying the source files to the build directory.
-func (g *GoBuilder) Build(parsedBuildfile *model.ParsedBuildfile) error {
+func (g *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 	buildlog.Infof("Building Go package %s", parsedBuildfile.Package.String())
 	env, err := generateEnvironment(parsedBuildfile)
 	if err != nil {
 		return fmt.Errorf("Error generating build environment: %+v", err)
 	}
 
-	goBuildfile := &GoBuildfile{}
+	goBuildfile := &Buildfile{}
 	if err = yaml.Unmarshal(parsedBuildfile.RawBuildfile, goBuildfile); err != nil {
 		return fmt.Errorf("Error parsing go buildfile: %+v", err)
 	}
