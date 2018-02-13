@@ -118,6 +118,8 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 		"zbuild-artifact-metadata")
 	sourceSetTableName := readLineWithPrompt("Dynamo table name for source set metadata",
 		artifacts.IsValidName, "zbuild-source-set-metadata")
+	dependencyTableName := readLineWithPrompt("Dynamo table name for dependency metadata",
+		artifacts.IsValidName, "zbuild-dependency-metadata")
 	region := readLineWithPrompt("AWS Region", artifacts.IsValidName, "us-east-1")
 	profile := readLineWithPrompt("(Optional) AWS credentials profile",
 		func(input string) error {
@@ -149,7 +151,7 @@ func (a *awsBackendType) getManagerAndSourceSet(reader *bufio.Reader,
 
 	dynamoSvc := dynamodb.New(sess)
 	sourceSet, err := artifacts.NewDynamoSourceSet(dynamoSvc, sourceSetName, sourceSetTableName,
-		artifactTableName, profile)
+		artifactTableName, dependencyTableName, profile)
 	if err != nil {
 		return nil, nil, err
 	}

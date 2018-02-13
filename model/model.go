@@ -56,6 +56,14 @@ type Dependencies struct {
 	Compile []Package `yaml:"compile"`
 }
 
+// All returns all dependencies, regardless of type
+func (d *Dependencies) All() []Package {
+	dependencies := make([]Package, 0)
+	dependencies = append(dependencies, d.Compile...)
+	dependencies = append(dependencies, d.Test...)
+	return dependencies
+}
+
 // Artifact represents a single build of a package. The build number must be unique across all
 // builds of the package
 type Artifact struct {

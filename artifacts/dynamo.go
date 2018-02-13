@@ -29,10 +29,11 @@ const (
 
 // DynamoMetadata is the metadata for the DynamoDB client used by the source set.
 type DynamoMetadata struct {
-	Region         string `json:"region,omitempty"`
-	SourceSetTable string `json:"sourceSetTable"`
-	ArtifactTable  string `json:"artifactTable"`
-	Profile        string `json:"profile,omitempty"`
+	Region          string `json:"region,omitempty"`
+	SourceSetTable  string `json:"sourceSetTable"`
+	ArtifactTable   string `json:"artifactTable"`
+	DependencyTable string `json:"dependencyTable"`
+	Profile         string `json:"profile,omitempty"`
 }
 
 // DynamoSourceSet uses DynamoDB to store package information
@@ -92,6 +93,39 @@ type dynamoArtifact struct {
 	Artifact *model.Artifact `dynamodbav:"artifact,omitempty"`
 }
 
+type dynamoDependencyKey struct {
+	// Upstream is the upstream dependency. This is only a package identifier. The reason it is only
+	// a package is that different source sets will have different builds of a package
+	Upstream string `dynamodbav:"upstream,omitempty"`
+
+	// Downstream is the specific artifact that depends on the upstream package. It's definitely going
+	// to be inefficient to scan each artifact that has ever depended on the upstream dependency. Need
+	// to think of a better way to do this eventually...
+	Downstream string `dynamodbav:"downstream,omitempty"`
+}
+
+func newDynamoDependencyKey(upstream *model.Package, downstream *model.Artifact) dynamoDependencyKey {
+	return dynamoDependencyKey{
+		Upstream: fmt.Sprintf("%s/%s/%s", upstream.Namespace, upstream.Name, upstream.Version),
+		Downstream: fmt.Sprintf("%s/%s/%s/%s",
+			downstream.Namespace,
+			downstream.Name,
+			downstream.Version,
+			downstream.BuildNumber,
+		),
+	}
+}
+
+type dynamoDependency struct {
+	dynamoDependencyKey
+}
+
+func newDynamoDependency(upstream *model.Package, downstream *model.Artifact) *dynamoDependency {
+	return &dynamoDependency{
+		dynamoDependencyKey: newDynamoDependencyKey(upstream, downstream),
+	}
+}
+
 func newDynamoArtifact(artifact *model.Artifact) *dynamoArtifact {
 	dynamoArtifactKey := newDynamoArtifactKey(
 		artifact.Namespace,
@@ -109,6 +143,7 @@ func NewDynamoSourceSet(svc *dynamodb.DynamoDB,
 	sourceSetName,
 	sourceSetTable,
 	artifactTable,
+	dependencyTable,
 	profile string) (SourceSet, error) {
 	region := ""
 	if svc.Config.Region != nil {
@@ -116,10 +151,11 @@ func NewDynamoSourceSet(svc *dynamodb.DynamoDB,
 	}
 
 	metadata := &DynamoMetadata{
-		Region:         region,
-		SourceSetTable: sourceSetTable,
-		ArtifactTable:  artifactTable,
-		Profile:        profile,
+		Region:          region,
+		SourceSetTable:  sourceSetTable,
+		ArtifactTable:   artifactTable,
+		DependencyTable: dependencyTable,
+		Profile:         profile,
 	}
 
 	return NewDynamoSourceSetFromMetadata(svc, sourceSetName, metadata)
@@ -316,6 +352,24 @@ func (d *DynamoSourceSet) RegisterArtifact(artifact *model.Artifact) error {
 
 	if _, err := d.svc.PutItem(putItemInput); err != nil {
 		return fmt.Errorf("Error persisting artifact %+v: %+v", artifact, err)
+	}
+
+	// TODO: Batch this write (I'm lazy)
+	for _, dependency := range artifact.Dependencies.All() {
+		dynamoDependency := newDynamoDependency(&dependency, artifact)
+		item, err := dynamodbattribute.MarshalMap(dynamoDependency)
+		if err != nil {
+			return fmt.Errorf("Error marshaling dependency information for %+v: %+v", artifact, err)
+		}
+
+		putItemInput := &dynamodb.PutItemInput{
+			TableName: aws.String(d.metadata.DependencyTable),
+			Item:      item,
+		}
+
+		if _, err := d.svc.PutItem(putItemInput); err != nil {
+			return fmt.Errorf("Error persisting dependency information for %+v: %+v", artifact, err)
+		}
 	}
 
 	return nil
