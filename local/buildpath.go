@@ -3,7 +3,6 @@ package local
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/dimes/zbuild/artifacts"
@@ -39,23 +38,18 @@ func (t *testResolver) GetDependencies(target model.Package) []model.Package {
 	return append(t.compileResolver.GetDependencies(target), target.Dependencies.Test...)
 }
 
-// GetBuildpath returns a path to all packages required for the build
-func GetBuildpath(path string, resolver DependencyResolver) ([]string, error) {
-	// Calculate the package containing the path
+type buildpathGenerator struct {
+	workspace         string
+	localSourceSet    artifacts.SourceSet
+	overrideSourceSet *overrideSourceSet
+	localManager      artifacts.Manager
+	upstreamManager   artifacts.Manager
+}
+
+func newBuildpathGenerator(path string) (*buildpathGenerator, error) {
 	workspace, err := GetWorkspace(path)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting workspace for %s: %+v", path, err)
-	}
-
-	relativePath, err := filepath.Rel(workspace, path)
-	if err != nil {
-		return nil, fmt.Errorf("Error getting path %s relative to %s: %+v", path, workspace, err)
-	}
-
-	packageLocation := filepath.Join(workspace, strings.Split(relativePath, string(os.PathSeparator))[0])
-	parsedBuildfile, err := model.ParseBuildfile(filepath.Join(packageLocation, model.BuildfileName))
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing build file for package %s: %+v", packageLocation, err)
 	}
 
 	localSourceSet, err := NewLocalSourceSet(workspace)
@@ -75,12 +69,77 @@ func GetBuildpath(path string, resolver DependencyResolver) ([]string, error) {
 
 	upstreamManager, err := GetRemoteManager(workspace)
 	if err != nil {
-		buildlog.Fatalf("Error getting remote manager: %+v", err)
+		return nil, fmt.Errorf("Error getting remote manager: %+v", err)
+	}
+
+	return &buildpathGenerator{
+		workspace:         workspace,
+		localSourceSet:    localSourceSet,
+		overrideSourceSet: overrideSourceSet,
+		localManager:      localManager,
+		upstreamManager:   upstreamManager,
+	}, nil
+}
+
+// getArtifact returns the artifact for the given package, as well as its location in the local FS
+func (b *buildpathGenerator) getArtifact(target model.Package) (*model.Artifact, string, error) {
+	artifactLocation := ""
+	artifact, err := b.overrideSourceSet.GetArtifact(target.Namespace, target.Name, target.Version)
+	if err == artifacts.ErrArtifactNotFound {
+		artifact, err = b.localSourceSet.GetArtifact(target.Namespace, target.Name, target.Version)
+		if err != nil {
+			return nil, "", fmt.Errorf("Error getting artifact for %s: %+v", target.String(), err)
+		}
+
+		artifactLocation = localArtifactCacheDir(b.workspace, artifact)
+		if _, err = os.Stat(artifactLocation); err != nil {
+			buildlog.Debugf("Downloading %s", artifact.String())
+			if err = artifacts.Transfer(b.upstreamManager, b.localManager, artifact); err != nil {
+				return nil, "", fmt.Errorf("Error downloading artifact %s: %+v", artifact.String(), err)
+			}
+		}
+	} else if err != nil {
+		return nil, "", fmt.Errorf("Error getting artifact from overide source set: %+v", err)
+	} else {
+		artifactLocation, err = b.overrideSourceSet.getLocationForArtifact(
+			target.Namespace,
+			target.Name,
+			target.Version)
+		if err != nil {
+			return nil, "",
+				fmt.Errorf("Error getting artifact location for %s: %+v", artifact.String(), err)
+		}
+	}
+
+	return artifact, artifactLocation, nil
+}
+
+// GetArtifactLocation gets the artifact for the given package. It uses the path to determine the
+// workspace
+func GetArtifactLocation(path string, target model.Package) (string, error) {
+	buildpathGenerator, err := newBuildpathGenerator(path)
+	if err != nil {
+		return "", fmt.Errorf("Error getting buildpath generator for %s: %+v", path, err)
+	}
+
+	_, artifactLocation, err := buildpathGenerator.getArtifact(target)
+	if err != nil {
+		return "", fmt.Errorf("Error getting artifact for %+v: %+v", target, err)
+	}
+
+	return artifactLocation, nil
+}
+
+// GetBuildpath returns a path to all packages required for the build
+func GetBuildpath(workspace string, target model.Package, resolver DependencyResolver) ([]string, error) {
+	buildpathGenerator, err := newBuildpathGenerator(workspace)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting buildpath generator for %s: %+v", workspace, err)
 	}
 
 	paths := make([]string, 0)
 	seenPackages := make(map[string]bool)
-	stack := []*stackEntry{{target: parsedBuildfile.Package}}
+	stack := []*stackEntry{{target: target}}
 	for len(stack) > 0 {
 		entry := stack[len(stack)-1]
 		target := entry.target
@@ -102,29 +161,9 @@ func GetBuildpath(path string, resolver DependencyResolver) ([]string, error) {
 		seenPackages[targetKey] = true
 		entry.visited = true
 
-		artifactLocation := ""
-		artifact, err := overrideSourceSet.GetArtifact(target.Namespace, target.Name, target.Version)
-		if err == artifacts.ErrArtifactNotFound {
-			artifact, err = localSourceSet.GetArtifact(target.Namespace, target.Name, target.Version)
-			if err != nil {
-				return nil, fmt.Errorf("Error getting artifact for %s: %+v", target.String(), err)
-			}
-
-			artifactLocation = localArtifactCacheDir(workspace, artifact)
-			if _, err = os.Stat(artifactLocation); err != nil {
-				buildlog.Debugf("Downloading %s", artifact.String())
-				if err = artifacts.Transfer(upstreamManager, localManager, artifact); err != nil {
-					return nil, fmt.Errorf("Error downloading artifact %s: %+v", artifact.String(), err)
-				}
-			}
-		} else if err != nil {
-			return nil, fmt.Errorf("Error getting artifact from overide source set: %+v", err)
-		} else {
-			artifactLocation, err = overrideSourceSet.getLocationForArtifact(target.Namespace, target.Name,
-				target.Version)
-			if err != nil {
-				return nil, fmt.Errorf("Error getting artifact location for %s: %+v", artifact.String(), err)
-			}
+		artifact, artifactLocation, err := buildpathGenerator.getArtifact(target)
+		if err != nil {
+			return nil, fmt.Errorf("Error getting artifact for %+v: %+v", target, err)
 		}
 
 		paths = append(paths, artifactLocation)

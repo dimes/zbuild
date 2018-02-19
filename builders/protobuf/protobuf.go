@@ -34,9 +34,9 @@ func (b *Builder) Type() string {
 }
 
 // Build compiles the protocol buffers to make sure the syntax is correct
-func (b *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
+func (b *Builder) Build(workspace string, parsedBuildfile *model.ParsedBuildfile) error {
 	buildlog.Infof("Building Protocol Buffer package %s", parsedBuildfile.Package.String())
-	protoPaths, err := local.GetBuildpath(parsedBuildfile.AbsoluteWorkingDir,
+	protoPaths, err := local.GetBuildpath(workspace, parsedBuildfile.Package,
 		local.CompileDependencyResolver)
 	if err != nil {
 		return fmt.Errorf("Error getting proto path: %+v", err)
@@ -48,26 +48,15 @@ func (b *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 		return fmt.Errorf("Error listing proto files in %s: %+v", protoDir, err)
 	}
 
-	args := make([]string, 0)
-	for _, protoPath := range protoPaths {
-		args = append(args, []string{"-I", filepath.Join(protoPath, srcDir)}...)
-	}
-
 	tempDir, err := ioutil.TempDir(os.TempDir(), "protobuild")
 	if err != nil {
 		return fmt.Errorf("Error generating temp build directory: %+v", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	args = append(args, []string{"--cpp_out", tempDir}...)
-	args = append(args, protoFiles...)
-
-	cmd := exec.Command("protoc", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Dir = parsedBuildfile.AbsoluteWorkingDir
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Error building protocol buffers in %s: %+v", protoDir, err)
+	err = runProtoc(parsedBuildfile.AbsoluteWorkingDir, protoPaths, protoFiles, "--cpp_out", tempDir)
+	if err != nil {
+		return err
 	}
 
 	buildlog.Infof("Copying source files to build directory %s", parsedBuildfile.AbsoluteBuildDir)
@@ -77,6 +66,26 @@ func (b *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 
 	if err := copyutil.Copy(absoluteSrcInput, absoluteSrcOutput); err != nil {
 		return fmt.Errorf("Error copying source file to %s: %+v", absoluteSrcOutput, err)
+	}
+
+	return nil
+}
+
+func runProtoc(dir string, protoPaths []string, protoFiles []string, extraArgs ...string) error {
+	args := make([]string, 0)
+	for _, protoPath := range protoPaths {
+		args = append(args, []string{"-I", filepath.Join(protoPath, srcDir)}...)
+	}
+
+	args = append(args, extraArgs...)
+	args = append(args, protoFiles...)
+
+	cmd := exec.Command("protoc", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Dir = dir
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Error building protocol buffers in %s: %+v", dir, err)
 	}
 
 	return nil

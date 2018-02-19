@@ -15,7 +15,7 @@ var (
 // Builder is an interface that all builders must implement
 type Builder interface {
 	Type() string
-	Build(*model.ParsedBuildfile) error
+	Build(workspace string, parsedBuildfile *model.ParsedBuildfile) error
 }
 
 // RegisterBuilder associates the given builder with its type. If the type already has

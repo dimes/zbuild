@@ -47,15 +47,15 @@ func (b *Builder) Type() string {
 //
 // Go builds consist of compiling all the code (to make sure it builds)
 // and then copying the source files to the build directory.
-func (b *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
+func (b *Builder) Build(workspace string, parsedBuildfile *model.ParsedBuildfile) error {
 	buildlog.Infof("Building Go package %s", parsedBuildfile.Package.String())
-	env, err := generateEnvironment(parsedBuildfile)
+	env, err := generateEnvironment(workspace, parsedBuildfile)
 	if err != nil {
 		return fmt.Errorf("Error generating build environment: %+v", err)
 	}
 
 	goBuildfile := &Buildfile{}
-	if err = yaml.Unmarshal(parsedBuildfile.RawBuildfile, goBuildfile); err != nil {
+	if err := yaml.Unmarshal(parsedBuildfile.RawBuildfile, goBuildfile); err != nil {
 		return fmt.Errorf("Error parsing go buildfile: %+v", err)
 	}
 
@@ -102,8 +102,11 @@ func (b *Builder) Build(parsedBuildfile *model.ParsedBuildfile) error {
 	return nil
 }
 
-func generateEnvironment(parsedBuildfile *model.ParsedBuildfile) ([]string, error) {
-	gopath, err := local.GetBuildpath(parsedBuildfile.AbsoluteWorkingDir, local.CompileDependencyResolver)
+func generateEnvironment(workspace string, parsedBuildfile *model.ParsedBuildfile) ([]string, error) {
+	gopath, err := local.GetBuildpath(
+		workspace,
+		parsedBuildfile.Package,
+		local.CompileDependencyResolver)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting GOPATH: %+v", err)
 	}
