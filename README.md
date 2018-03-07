@@ -10,6 +10,12 @@ Handling dependencies in large, cross-team code bases is notoriously difficult. 
 * Cross-language dependency support
 * Integration with other popular dependency managers
 
+## Why Zbuild?
+
+ZBuild is not like other build systems. It wants to stay out of your way. It wants to integrate with your existing tools. It wants to work out of the box. It wants you to share code across large teams. It wants you to share code with your team.  It wants to be simple, invisible, and empowering. 
+
+Most notably, it's designed to work with many (tens, hundreds, thousands) small git repositories, which differs from other build systems that want to shoe horn you into monolithic code bases. 
+
 ## Quick Start
 
 Before starting, please take a few minutes to familiarize yourself with the [core concepts](https://dimes.github.io/zbuild/concepts) of zbuild.
