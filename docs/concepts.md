@@ -14,6 +14,6 @@ The easiest way to understand source sets may be a motivating example. Imagine y
 
 ### Workspace
 
-Often times, development will involve multiple packages simultaneous. For instance, you might be making changes to a library and want to use those changes in one of your services.
+Often times, development will involve multiple packages simultaneously. For instance, you might be making changes to a library and want to use those changes in one of your services.
 
-A workspace is a local directory that contains the packages you are working on. When you attempt to build or run your code locally, your workspace will be used to override any dependencies in your dependency graph with their local versions. If you don't have a package checked out locally, the package inside the source set will be used.
+A workspace is a local directory that contains the packages you are working on. When you attempt to build or run your code locally, your workspace will be used to override any dependencies in your dependency graph with their local versions. If you don't have a package checked out locally, the package inside the current source set will be used.
