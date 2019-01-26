@@ -5,7 +5,7 @@ import (
 
 	"github.com/dimes/zbuild/buildlog"
 	"github.com/dimes/zbuild/cli/argv"
-	"github.com/dimes/zbuild/cli/commands"
+	"github.com/dimes/zbuild/cli/zbuild/commands"
 )
 
 var (
